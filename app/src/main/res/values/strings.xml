@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Shay Backup</string>
+    <string name="subtitle">Back up your photos, videos, and downloads to Azure</string>
+
+    <string name="status_idle">Idle</string>
+    <string name="status_running">Backing up…</string>
+    <string name="status_done">Last run finished %1$s</string>
+    <string name="status_failed">Last run failed: %1$s</string>
+    <string name="status_never">No backup run yet</string>
+
+    <string name="not_configured">Azure account is not configured. Open Settings to add your storage account, container, and SAS token.</string>
+    <string name="configured_label">Backing up to %1$s/%2$s</string>
+
+    <string name="action_backup_now">Back up now</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_grant_permissions">Grant permissions</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="azure_account_url">Account URL</string>
+    <string name="azure_account_url_hint">https://myaccount.blob.core.windows.net</string>
+    <string name="azure_container">Container</string>
+    <string name="azure_container_hint">phone-backup</string>
+    <string name="azure_sas">SAS token</string>
+    <string name="azure_sas_hint">?sv=2024-…&amp;sig=…</string>
+    <string name="azure_sas_help">A read/write/list/create SAS for the container. Generate one in Azure Portal under your storage account → Shared access signature, or per-container under the container → Generate SAS.</string>
+    <string name="save">Save</string>
+    <string name="save_failed">Save failed: %1$s</string>
+    <string name="saved">Saved</string>
+    <string name="test_connection">Test connection</string>
+    <string name="testing">Testing…</string>
+    <string name="test_ok">Connection OK (HTTP %1$d)</string>
+    <string name="test_fail">Test failed: %1$s</string>
+
+    <string name="sources_title">What to back up</string>
+    <string name="src_images">Photos</string>
+    <string name="src_videos">Videos</string>
+    <string name="src_downloads">Downloads</string>
+
+    <string name="schedule_title">Schedule</string>
+    <string name="schedule_wifi_only">Only on Wi-Fi</string>
+    <string name="schedule_only_charging">Only when charging</string>
+    <string name="schedule_interval">Run every %1$d hours</string>
+
+    <string name="perms_required">Storage and notification permissions are required.</string>
+
+    <string name="notif_channel_progress">Backup progress</string>
+    <string name="notif_channel_progress_desc">Shown while a backup is running</string>
+    <string name="notif_channel_summary">Backup summary</string>
+    <string name="notif_channel_summary_desc">One-shot summary after a backup run</string>
+    <string name="notif_progress_title">Backing up</string>
+    <string name="notif_progress_text">%1$d of %2$d uploaded</string>
+    <string name="notif_done_title">Backup complete</string>
+    <string name="notif_done_text">%1$d uploaded · %2$d skipped · %3$d failed</string>
+    <string name="notif_failed_title">Backup failed</string>
+
+    <string name="version_label">Version %1$s</string>
+</resources>
