@@ -24,6 +24,9 @@ class BackupWorker(
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
+    override suspend fun getForegroundInfo(): ForegroundInfo =
+        makeForegroundInfo(0, 0, "")
+
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val ctx = applicationContext
         val config = ConfigStore(ctx)
@@ -69,8 +72,10 @@ class BackupWorker(
     }
 
     private fun makeForegroundInfo(done: Int, total: Int, current: String): ForegroundInfo {
+        // Make sure the channel exists before any setForeground call posts a notification.
+        NotificationHelper.ensureChannels(applicationContext)
         val notif = NotificationHelper.progressNotification(applicationContext, done, total, current)
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ForegroundInfo(NotificationHelper.ID_PROGRESS, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
             ForegroundInfo(NotificationHelper.ID_PROGRESS, notif)

@@ -68,13 +68,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnBackupNow.setOnClickListener {
-            if (!ensurePermissions()) return@setOnClickListener
-            if (!config.isConfigured) {
-                Toast.makeText(this, R.string.not_configured, Toast.LENGTH_LONG).show()
-                startActivity(Intent(this, SettingsActivity::class.java))
-                return@setOnClickListener
+            try {
+                if (!ensurePermissions()) return@setOnClickListener
+                if (!config.isConfigured) {
+                    Toast.makeText(this, R.string.not_configured, Toast.LENGTH_LONG).show()
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                    return@setOnClickListener
+                }
+                BackupWorker.runOnce(this)
+            } catch (t: Throwable) {
+                Toast.makeText(this, "Couldn't start: ${t.javaClass.simpleName}: ${t.message}", Toast.LENGTH_LONG).show()
             }
-            BackupWorker.runOnce(this)
         }
         binding.btnGrantPerms.setOnClickListener { ensurePermissions() }
 
@@ -198,9 +202,16 @@ class MainActivity : AppCompatActivity() {
         } else {
             getString(R.string.headline_idle, stats.done, stats.total)
         }
-        binding.progress.max = (if (running) runningTotal else stats.total) ?: 0
-        binding.progress.progress = (if (running) runningDone else stats.done) ?: 0
-        binding.progress.isIndeterminate = running && (runningTotal == 0)
+        val maxVal = (if (running) runningTotal else stats.total) ?: 0
+        val progVal = (if (running) runningDone else stats.done) ?: 0
+        if (running && maxVal == 0) {
+            // Total not yet known — show indeterminate spinner.
+            binding.progress.isIndeterminate = true
+        } else {
+            binding.progress.isIndeterminate = false
+            binding.progress.max = maxOf(maxVal, 1)
+            binding.progress.progress = progVal.coerceIn(0, maxOf(maxVal, 1))
+        }
 
         val bytesDone = Formatter.formatShortFileSize(this, stats.bytesDone)
         val bytesPending = Formatter.formatShortFileSize(this, stats.bytesPending)
@@ -216,6 +227,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleWorkInfos(infos: List<WorkInfo>?) {
         val info = infos?.firstOrNull()
+        try { handleWorkInfo(info) } catch (t: Throwable) {
+            Toast.makeText(this, "UI error: ${t.javaClass.simpleName}: ${t.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun handleWorkInfo(info: WorkInfo?) {
         when (info?.state) {
             WorkInfo.State.RUNNING -> {
                 val data = info.progress
