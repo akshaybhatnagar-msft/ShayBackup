@@ -66,7 +66,13 @@ object BackupEngine {
     ): Boolean {
         val blobName = blobNameFor(item)
         return try {
-            val input = context.contentResolver.openInputStream(item.uri) ?: return false
+            val input = context.contentResolver.openInputStream(item.uri)
+            if (input == null) {
+                AppInsights.trackTrace("upload.openInputStream.null", mapOf(
+                    "category" to item.category.name
+                ), severity = 2)
+                return false
+            }
             input.use {
                 val code = AzureBlobClient.putBlob(
                     accountUrl = config.accountUrl,
@@ -77,9 +83,18 @@ object BackupEngine {
                     contentLength = item.size,
                     contentType = item.mimeType
                 )
-                code in 200..299
+                val ok = code in 200..299
+                if (!ok) AppInsights.trackTrace("upload.httpFailed", mapOf(
+                    "status" to code.toString(),
+                    "category" to item.category.name
+                ), severity = 2)
+                ok
             }
         } catch (e: Exception) {
+            AppInsights.trackException(e, mapOf(
+                "phase" to "uploadOne",
+                "category" to item.category.name
+            ))
             false
         }
     }

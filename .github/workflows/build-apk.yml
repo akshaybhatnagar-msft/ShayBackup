@@ -41,6 +41,8 @@ jobs:
 
       - name: Build debug APK
         shell: bash
+        env:
+          AI_CONNECTION_STRING: ${{ secrets.AI_CONNECTION_STRING }}
         run: |
           set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log

@@ -30,7 +30,11 @@ class BackupWorker(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val ctx = applicationContext
         val config = ConfigStore(ctx)
+        AppInsights.trackTrace("backup.start", mapOf(
+            "isPeriodic" to (tags.contains(UNIQUE_PERIODIC)).toString()
+        ))
         if (!config.isConfigured) {
+            AppInsights.trackTrace("backup.notConfigured", severity = 2)
             NotificationHelper.postFailure(ctx, "Azure target is not configured. Open Settings.")
             return@withContext Result.failure()
         }
@@ -58,16 +62,26 @@ class BackupWorker(
 
         config.lastRunMs = System.currentTimeMillis()
         if (outcome.isFailure) {
-            val msg = outcome.exceptionOrNull()?.message ?: "Unknown error"
+            val err = outcome.exceptionOrNull()
+            val msg = err?.message ?: "Unknown error"
             config.lastResult = "Failed: $msg"
+            if (err != null) AppInsights.trackException(err, mapOf("phase" to "engine"))
+            else AppInsights.trackTrace("backup.failed: $msg", severity = 3)
             NotificationHelper.postFailure(ctx, msg)
+            AppInsights.flushBlocking(1_500)
             return@withContext Result.retry()
         }
 
         val result = outcome.getOrThrow()
         config.lastResult =
             "Uploaded ${result.uploaded} · Skipped ${result.skipped} · Failed ${result.failed}"
+        AppInsights.trackTrace("backup.completed", mapOf(
+            "uploaded" to result.uploaded.toString(),
+            "skipped" to result.skipped.toString(),
+            "failed" to result.failed.toString()
+        ))
         NotificationHelper.postSummary(ctx, result.uploaded, result.skipped, result.failed)
+        AppInsights.flushBlocking(1_500)
         if (result.failed > 0 && result.uploaded == 0) Result.retry() else Result.success()
     }
 

@@ -13,6 +13,11 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1"
+
+        // App Insights connection string is injected at build time from a GHA secret.
+        // Local builds with no env var get an empty string and silently disable telemetry.
+        val aiConn = System.getenv("AI_CONNECTION_STRING").orEmpty()
+        buildConfigField("String", "AI_CONN_STR", "\"${aiConn.replace("\"", "\\\"")}\"")
     }
 
     buildTypes {
