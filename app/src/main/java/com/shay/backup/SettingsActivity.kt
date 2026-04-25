@@ -25,9 +25,9 @@ class SettingsActivity : AppCompatActivity() {
         supportActionBar?.title = getString(R.string.settings_title)
 
         // Load existing values
-        binding.etAccountUrl.setText(config.accountUrl)
-        binding.etContainer.setText(config.container)
-        binding.etSas.setText(config.sasToken)
+        if (config.isConfigured) {
+            binding.etSasUrl.setText("${config.accountUrl}/${config.container}${config.sasToken}")
+        }
         binding.swImages.isChecked = config.backupImages
         binding.swVideos.isChecked = config.backupVideos
         binding.swDownloads.isChecked = config.backupDownloads
@@ -72,19 +72,24 @@ class SettingsActivity : AppCompatActivity() {
         binding.tvIntervalLabel.text = getString(R.string.schedule_interval, hours)
     }
 
-    private fun save() {
-        config.accountUrl = binding.etAccountUrl.text?.toString().orEmpty()
-        config.container = binding.etContainer.text?.toString().orEmpty()
-        config.sasToken = binding.etSas.text?.toString().orEmpty()
+    /** Returns true if the URL parsed and was saved. */
+    private fun save(): Boolean {
+        val raw = binding.etSasUrl.text?.toString().orEmpty()
+        val parsed = SasUrl.parse(raw)
+        if (parsed == null) {
+            binding.sasUrlLayout.error = getString(R.string.azure_sas_url_invalid)
+            return false
+        }
+        binding.sasUrlLayout.error = null
+        config.accountUrl = parsed.accountUrl
+        config.container = parsed.container
+        config.sasToken = parsed.sasToken
         Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
+        return true
     }
 
     private fun test() {
-        save()
-        if (!config.isConfigured) {
-            Toast.makeText(this, R.string.not_configured, Toast.LENGTH_LONG).show()
-            return
-        }
+        if (!save()) return
         binding.btnTest.isEnabled = false
         binding.btnTest.text = getString(R.string.testing)
         lifecycleScope.launch {

@@ -39,54 +39,25 @@
                     android:padding="16dp">
 
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/sasUrlLayout"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/azure_account_url"
-                        android:layout_marginBottom="12dp">
+                        android:hint="@string/azure_sas_url">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etAccountUrl"
+                            android:id="@+id/etSasUrl"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textUri"
-                            android:hint="@string/azure_account_url_hint" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="@string/azure_container"
-                        android:layout_marginBottom="12dp">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etContainer"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="text"
-                            android:hint="@string/azure_container_hint" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="@string/azure_sas">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/etSas"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textMultiLine"
-                            android:hint="@string/azure_sas_hint" />
+                            android:inputType="textMultiLine|textUri"
+                            android:hint="@string/azure_sas_url_hint" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="@string/azure_sas_help"
+                        android:text="@string/azure_sas_url_help"
                         android:textAppearance="?attr/textAppearanceLabelSmall"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 

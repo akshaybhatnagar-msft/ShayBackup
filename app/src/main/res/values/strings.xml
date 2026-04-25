@@ -17,13 +17,10 @@
     <string name="action_grant_permissions">Grant permissions</string>
 
     <string name="settings_title">Settings</string>
-    <string name="azure_account_url">Account URL</string>
-    <string name="azure_account_url_hint">https://myaccount.blob.core.windows.net</string>
-    <string name="azure_container">Container</string>
-    <string name="azure_container_hint">phone-backup</string>
-    <string name="azure_sas">SAS token</string>
-    <string name="azure_sas_hint">"?sv=2024-…&amp;sig=…"</string>
-    <string name="azure_sas_help">A read/write/list/create SAS for the container. Generate one in Azure Portal under your storage account → Shared access signature, or per-container under the container → Generate SAS.</string>
+    <string name="azure_sas_url">Blob SAS URL</string>
+    <string name="azure_sas_url_hint">https://acct.blob.core.windows.net/container?sv=…&amp;sig=…</string>
+    <string name="azure_sas_url_help">Paste the full SAS URL for your container. In Azure Portal: container → Shared access tokens → permissions Read/Write/Create/List → Generate SAS token and URL → copy the Blob SAS URL.</string>
+    <string name="azure_sas_url_invalid">That doesn\'t look like a SAS URL. Expected: https://acct.blob.core.windows.net/container?sv=…</string>
     <string name="save">Save</string>
     <string name="save_failed">Save failed: %1$s</string>
     <string name="saved">Saved</string>
