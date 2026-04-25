@@ -22,7 +22,7 @@
     <string name="azure_container">Container</string>
     <string name="azure_container_hint">phone-backup</string>
     <string name="azure_sas">SAS token</string>
-    <string name="azure_sas_hint">?sv=2024-…&amp;sig=…</string>
+    <string name="azure_sas_hint">"?sv=2024-…&amp;sig=…"</string>
     <string name="azure_sas_help">A read/write/list/create SAS for the container. Generate one in Azure Portal under your storage account → Shared access signature, or per-container under the container → Generate SAS.</string>
     <string name="save">Save</string>
     <string name="save_failed">Save failed: %1$s</string>
