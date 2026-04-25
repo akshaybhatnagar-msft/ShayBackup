@@ -33,4 +33,9 @@
     <color name="md_theme_dark_outlineVariant">#43474E</color>
     <color name="md_theme_dark_background">#1A1C1E</color>
     <color name="md_theme_dark_onBackground">#E2E2E5</color>
+
+    <color name="status_done">#2E7D32</color>
+    <color name="status_pending">#757575</color>
+    <color name="status_failed">#C62828</color>
+    <color name="status_uploading">#1565C0</color>
 </resources>

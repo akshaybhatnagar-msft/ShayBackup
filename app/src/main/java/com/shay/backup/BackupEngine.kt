@@ -31,6 +31,8 @@ object BackupEngine {
         var failed = 0
         val skipped = all.size - pending.size
         val newKeys = ArrayList<String>()
+        val newlyDoneFromFailed = ArrayList<String>()
+        val newFailed = ArrayList<String>()
 
         pending.forEachIndexed { index, item ->
             onProgress(Progress(index, pending.size, item.fileName))
@@ -38,16 +40,21 @@ object BackupEngine {
             if (ok) {
                 uploaded++
                 newKeys += item.key
-                // Persist progress in batches to survive interruption.
+                if (config.isFailed(item.key)) newlyDoneFromFailed += item.key
                 if (newKeys.size >= 25) {
                     config.markBackedUp(newKeys)
+                    config.clearFromFailed(newlyDoneFromFailed)
                     newKeys.clear()
+                    newlyDoneFromFailed.clear()
                 }
             } else {
                 failed++
+                newFailed += item.key
             }
         }
-        if (newKeys.isNotEmpty()) config.markBackedUp(newKeys)
+        config.markBackedUp(newKeys)
+        config.clearFromFailed(newlyDoneFromFailed)
+        config.markFailed(newFailed)
         onProgress(Progress(pending.size, pending.size, ""))
         return RunResult(uploaded = uploaded, skipped = skipped, failed = failed)
     }

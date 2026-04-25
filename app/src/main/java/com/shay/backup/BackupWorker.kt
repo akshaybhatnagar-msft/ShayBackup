@@ -14,6 +14,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
@@ -38,6 +39,13 @@ class BackupWorker(
         val outcome = runCatching {
             BackupEngine.run(ctx, config) { progress ->
                 runCatching {
+                    setProgress(
+                        workDataOf(
+                            KEY_DONE to progress.done,
+                            KEY_TOTAL to progress.total,
+                            KEY_CURRENT to progress.current
+                        )
+                    )
                     setForeground(
                         makeForegroundInfo(progress.done, progress.total, progress.current)
                     )
@@ -72,6 +80,10 @@ class BackupWorker(
     companion object {
         const val UNIQUE_PERIODIC = "shay_backup_periodic"
         const val UNIQUE_ONESHOT  = "shay_backup_oneshot"
+
+        const val KEY_DONE = "done"
+        const val KEY_TOTAL = "total"
+        const val KEY_CURRENT = "current"
 
         fun schedulePeriodic(context: Context, config: ConfigStore) {
             val constraints = Constraints.Builder()

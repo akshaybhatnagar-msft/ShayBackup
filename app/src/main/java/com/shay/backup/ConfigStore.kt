@@ -78,6 +78,10 @@ class ConfigStore(context: Context) {
     // ── Dedupe history ──────────────────────────────────────────────────────
 
     fun isBackedUp(key: String): Boolean = prefs.getStringSet(K_HISTORY, emptySet())!!.contains(key)
+    fun isFailed(key: String): Boolean = prefs.getStringSet(K_FAILED, emptySet())!!.contains(key)
+
+    fun uploadedKeys(): Set<String> = prefs.getStringSet(K_HISTORY, emptySet())!!.toSet()
+    fun failedKeys(): Set<String> = prefs.getStringSet(K_FAILED, emptySet())!!.toSet()
 
     fun markBackedUp(keys: Collection<String>) {
         if (keys.isEmpty()) return
@@ -86,7 +90,24 @@ class ConfigStore(context: Context) {
         prefs.edit().putStringSet(K_HISTORY, current).apply()
     }
 
-    fun clearHistory() { prefs.edit().remove(K_HISTORY).apply() }
+    fun markFailed(keys: Collection<String>) {
+        if (keys.isEmpty()) return
+        val current = prefs.getStringSet(K_FAILED, emptySet())!!.toMutableSet()
+        current.addAll(keys)
+        prefs.edit().putStringSet(K_FAILED, current).apply()
+    }
+
+    fun clearFromFailed(keys: Collection<String>) {
+        if (keys.isEmpty()) return
+        val current = prefs.getStringSet(K_FAILED, emptySet())!!.toMutableSet()
+        if (current.removeAll(keys.toSet())) {
+            prefs.edit().putStringSet(K_FAILED, current).apply()
+        }
+    }
+
+    fun clearHistory() {
+        prefs.edit().remove(K_HISTORY).remove(K_FAILED).apply()
+    }
 
     companion object {
         private const val K_ACCOUNT_URL = "azure_account_url"
@@ -106,5 +127,6 @@ class ConfigStore(context: Context) {
         private const val K_LAST_RESULT = "last_result"
 
         private const val K_HISTORY = "uploaded_keys"
+        private const val K_FAILED = "failed_keys"
     }
 }

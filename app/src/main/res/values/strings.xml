@@ -16,6 +16,20 @@
     <string name="action_settings">Settings</string>
     <string name="action_grant_permissions">Grant permissions</string>
 
+    <string name="tab_all">All</string>
+    <string name="tab_pending">Pending</string>
+    <string name="tab_done">Backed up</string>
+    <string name="tab_failed">Failed</string>
+
+    <string name="headline_idle">%1$d of %2$d backed up</string>
+    <string name="headline_running">Backing up %1$d of %2$d…</string>
+    <string name="stats_bytes">%1$s uploaded · %2$s remaining</string>
+    <string name="stats_failed_count">%1$d failed</string>
+    <string name="empty_all">No media on this device.</string>
+    <string name="empty_pending">Nothing pending — everything is backed up.</string>
+    <string name="empty_done">Nothing backed up yet.</string>
+    <string name="empty_failed">No failed items.</string>
+
     <string name="settings_title">Settings</string>
     <string name="azure_sas_url">Blob SAS URL</string>
     <string name="azure_sas_url_hint">https://acct.blob.core.windows.net/container?sv=…&amp;sig=…</string>
