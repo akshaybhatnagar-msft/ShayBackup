@@ -36,6 +36,26 @@ Each item lands at `{container}/{category}/{yyyy-MM}/{filename}`.
 - `BackupWorker` is a `CoroutineWorker` running as a foreground service while uploading, scheduled by `WorkManager` every N hours (Wi-Fi/charging constraints configurable).
 - Auth is a SAS token appended to each blob URL. No keys are ever sent off-device.
 
+## Quality
+
+**Files are uploaded byte-for-byte. No compression, no transcoding, no resizing.**
+Each item is read via `ContentResolver.openInputStream(uri)` — the same raw bytes
+your camera/download wrote — and `PUT`'d to the blob with the original
+`Content-Type`. The blob in Azure is a bit-exact copy of the file on the device.
+
+## Sharing
+
+Long-press a backed-up item in the list to **Copy** or **Share** a download link.
+Each link is the blob URL with your container SAS appended, so:
+
+- The link works for anyone you send it to until the SAS expires.
+- The link inherits **whatever permissions the SAS has**. If your SAS is
+  Read+Write+Create+List, recipients could technically write too. The app shows a
+  one-time warning before the first share so this isn't a surprise.
+- For read-only sharing, generate a *second* SAS in Azure Portal with only
+  `Read` permission and a longer expiry, then paste it into Settings (a separate
+  Share-SAS field is on the roadmap).
+
 ## Limitations of v1
 
 - Plain `SharedPreferences` for SAS storage. Use a short-lived, scoped SAS, or fork to `EncryptedSharedPreferences`.

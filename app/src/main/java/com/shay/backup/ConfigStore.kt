@@ -75,6 +75,11 @@ class ConfigStore(context: Context) {
         get() = prefs.getString(K_LAST_RESULT, "").orEmpty()
         set(value) { prefs.edit().putString(K_LAST_RESULT, value).apply() }
 
+    /** Whether we've already shown the SAS-scope warning when sharing a link. */
+    var shareScopeWarned: Boolean
+        get() = prefs.getBoolean(K_SHARE_WARNED, false)
+        set(value) { prefs.edit().putBoolean(K_SHARE_WARNED, value).apply() }
+
     // ── Dedupe history ──────────────────────────────────────────────────────
 
     fun isBackedUp(key: String): Boolean = prefs.getStringSet(K_HISTORY, emptySet())!!.contains(key)
@@ -128,5 +133,6 @@ class ConfigStore(context: Context) {
 
         private const val K_HISTORY = "uploaded_keys"
         private const val K_FAILED = "failed_keys"
+        private const val K_SHARE_WARNED = "share_scope_warned"
     }
 }

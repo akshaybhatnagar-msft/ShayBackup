@@ -62,6 +62,13 @@ object AzureBlobClient {
         )
     }
 
+    fun blobUrl(
+        accountUrl: String,
+        container: String,
+        blobName: String,
+        sas: String
+    ): String = buildBlobUrl(accountUrl, container, blobName, sas)
+
     private fun buildBlobUrl(
         accountUrl: String,
         container: String,

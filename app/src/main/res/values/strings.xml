@@ -30,6 +30,15 @@
     <string name="empty_done">Nothing backed up yet.</string>
     <string name="empty_failed">No failed items.</string>
 
+    <string name="action_open">Open</string>
+    <string name="action_copy_link">Copy download link</string>
+    <string name="action_share_link">Share download link</string>
+    <string name="continue_btn">Continue</string>
+    <string name="cancel">Cancel</string>
+    <string name="link_copied">Download link copied</string>
+    <string name="share_warning_title">Heads up — link permissions</string>
+    <string name="share_warning_body">The link uses the SAS token from Settings, so anyone with it has the same access to your container that the SAS allows (read, and possibly write). To share read-only links, generate a separate read-only SAS in Azure Portal and update Settings later.\n\nContinue with the current SAS?</string>
+
     <string name="settings_title">Settings</string>
     <string name="azure_sas_url">Blob SAS URL</string>
     <string name="azure_sas_url_hint">https://acct.blob.core.windows.net/container?sv=…&amp;sig=…</string>

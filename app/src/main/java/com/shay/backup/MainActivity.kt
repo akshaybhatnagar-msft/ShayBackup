@@ -1,6 +1,9 @@
 package com.shay.backup
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.ContentObserver
@@ -15,6 +18,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -60,7 +64,12 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.toolbar)
 
-        itemsAdapter = BackupItemsAdapter(this, lifecycleScope)
+        itemsAdapter = BackupItemsAdapter(
+            context = this,
+            scope = lifecycleScope,
+            onItemClick = ::openItem,
+            onItemLongClick = ::onItemLongPress
+        )
         binding.rvItems.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = itemsAdapter
@@ -258,4 +267,76 @@ class MainActivity : AppCompatActivity() {
 
     private fun hostOf(url: String): String =
         url.removePrefix("https://").removePrefix("http://").substringBefore('/')
+
+    // ── Open / share ────────────────────────────────────────────────────────
+
+    private fun openItem(item: BackupItem) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(item.uri, item.mimeType.ifBlank { "*/*" })
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            startActivity(intent)
+        } catch (e: android.content.ActivityNotFoundException) {
+            Toast.makeText(this, "No app can open this file", Toast.LENGTH_LONG).show()
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "Cannot open: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun onItemLongPress(item: BackupItem) {
+        val labels = mutableListOf<String>().apply {
+            add(getString(R.string.action_open))
+            if (item.status == BackupStatus.DONE) {
+                add(getString(R.string.action_copy_link))
+                add(getString(R.string.action_share_link))
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(item.fileName)
+            .setItems(labels.toTypedArray()) { _, which ->
+                when (labels[which]) {
+                    getString(R.string.action_open)       -> openItem(item)
+                    getString(R.string.action_copy_link)  -> withShareUrl(item) { copyLink(it) }
+                    getString(R.string.action_share_link) -> withShareUrl(item) { shareLink(it, item.fileName) }
+                }
+            }
+            .show()
+    }
+
+    private fun withShareUrl(item: BackupItem, action: (String) -> Unit) {
+        if (!config.isConfigured) return
+        val blobName = BackupEngine.blobName(item.category, item.fileName, item.modifiedMs)
+        val url = AzureBlobClient.blobUrl(
+            config.accountUrl, config.container, blobName, config.sasToken
+        )
+        if (config.shareScopeWarned) {
+            action(url)
+        } else {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.share_warning_title)
+                .setMessage(R.string.share_warning_body)
+                .setPositiveButton(R.string.continue_btn) { _, _ ->
+                    config.shareScopeWarned = true
+                    action(url)
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun copyLink(url: String) {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("Backup link", url))
+        Toast.makeText(this, R.string.link_copied, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun shareLink(url: String, fileName: String) {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, fileName)
+            putExtra(Intent.EXTRA_TEXT, url)
+        }
+        startActivity(Intent.createChooser(send, getString(R.string.action_share_link)))
+    }
 }

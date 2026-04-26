@@ -99,8 +99,12 @@ object BackupEngine {
         }
     }
 
-    private fun blobNameFor(item: MediaScanner.MediaItem): String {
-        val bucket = SimpleDateFormat("yyyy-MM", Locale.US).format(Date(item.modifiedMs))
-        return "${item.category.folderName}/$bucket/${item.fileName}"
+    private fun blobNameFor(item: MediaScanner.MediaItem): String =
+        blobName(item.category, item.fileName, item.modifiedMs)
+
+    /** Same naming used at upload time, exposed for link sharing. */
+    fun blobName(category: MediaScanner.Category, fileName: String, modifiedMs: Long): String {
+        val bucket = SimpleDateFormat("yyyy-MM", Locale.US).format(Date(modifiedMs))
+        return "${category.folderName}/$bucket/$fileName"
     }
 }

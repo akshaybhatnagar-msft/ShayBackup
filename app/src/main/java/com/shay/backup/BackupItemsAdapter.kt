@@ -26,7 +26,9 @@ import java.util.Locale
 
 class BackupItemsAdapter(
     private val context: Context,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val onItemClick: (BackupItem) -> Unit = {},
+    private val onItemLongClick: (BackupItem) -> Unit = {}
 ) : ListAdapter<BackupItem, BackupItemsAdapter.VH>(DIFF) {
 
     private val thumbCache = LruCache<String, Bitmap>(64)
@@ -45,6 +47,8 @@ class BackupItemsAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
         val b = holder.binding
+        b.root.setOnClickListener { onItemClick(item) }
+        b.root.setOnLongClickListener { onItemLongClick(item); true }
         b.tvName.text = item.fileName
         b.tvMeta.text = "${Formatter.formatShortFileSize(context, item.size)} · " +
                 dateFmt.format(Date(item.modifiedMs))
