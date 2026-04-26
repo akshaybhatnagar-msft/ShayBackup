@@ -126,17 +126,24 @@ class BackupWorker(
             WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_PERIODIC)
         }
 
-        fun runOnce(context: Context) {
+        fun runOnce(context: Context, config: ConfigStore) {
             val request = OneTimeWorkRequestBuilder<BackupWorker>()
                 .setConstraints(
                     Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .setRequiredNetworkType(
+                            if (config.wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED
+                        )
+                        .setRequiresCharging(config.onlyWhenCharging)
                         .build()
                 )
                 .build()
             WorkManager.getInstance(context).enqueueUniqueWork(
                 UNIQUE_ONESHOT, ExistingWorkPolicy.REPLACE, request
             )
+        }
+
+        fun cancelOneShot(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_ONESHOT)
         }
 
         fun observeOneShot(context: Context) =

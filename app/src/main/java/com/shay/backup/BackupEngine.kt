@@ -4,6 +4,8 @@ import android.content.Context
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 
 /**
  * Pulls items from [MediaScanner] and uploads each via [AzureBlobClient], skipping
@@ -24,6 +26,12 @@ object BackupEngine {
     ): RunResult {
         require(config.isConfigured) { "Azure config is not complete" }
 
+        // After a fresh install or history reset, rebuild dedupe state from the cloud
+        // so we don't re-upload everything we already have.
+        if (config.uploadedKeys().isEmpty()) {
+            try { reconcileFromCloud(context, config) } catch (_: Exception) { /* best effort */ }
+        }
+
         val all = MediaScanner.scan(context, config)
         val pending = all.filter { !config.isBackedUp(it.key) }
 
@@ -34,7 +42,10 @@ object BackupEngine {
         val newlyDoneFromFailed = ArrayList<String>()
         val newFailed = ArrayList<String>()
 
-        pending.forEachIndexed { index, item ->
+        pending.forEachIndexed runLoop@{ index, item ->
+            // Cooperative cancellation: if WorkManager cancels us (Stop button,
+            // network-constraint loss, etc.), stop between items and persist what we have.
+            if (!currentCoroutineContext().isActive) return@runLoop
             onProgress(Progress(index, pending.size, item.fileName))
             val ok = uploadOne(context, config, item)
             if (ok) {
@@ -106,5 +117,27 @@ object BackupEngine {
     fun blobName(category: MediaScanner.Category, fileName: String, modifiedMs: Long): String {
         val bucket = SimpleDateFormat("yyyy-MM", Locale.US).format(Date(modifiedMs))
         return "${category.folderName}/$bucket/$fileName"
+    }
+
+    /**
+     * Lists blobs in the configured container and marks every local file whose
+     * derived blob name is already present as "backed up". Returns the count
+     * matched. Useful after an uninstall+reinstall to avoid re-uploading.
+     */
+    fun reconcileFromCloud(context: Context, config: ConfigStore): Int {
+        if (!config.isConfigured) return 0
+        val remote = AzureBlobClient.listBlobs(
+            config.accountUrl, config.container, config.sasToken
+        ).toHashSet()
+        if (remote.isEmpty()) return 0
+        val local = MediaScanner.scan(context, config)
+        val matched = ArrayList<String>()
+        for (item in local) {
+            val name = blobName(item.category, item.fileName, item.modifiedMs)
+            if (remote.contains(name)) matched += item.key
+        }
+        config.markBackedUp(matched)
+        config.clearFromFailed(matched)
+        return matched.size
     }
 }

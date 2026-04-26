@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity() {
     private var allItems: List<BackupItem> = emptyList()
     private var currentTab: Tab = Tab.ALL
     private var currentlyUploadingKey: String? = null
+    private var isRunning: Boolean = false
 
     private val refreshHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshScan() }
@@ -78,13 +79,18 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnBackupNow.setOnClickListener {
             try {
+                if (isRunning) {
+                    BackupWorker.cancelOneShot(this)
+                    Toast.makeText(this, R.string.stop_requested, Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 if (!ensurePermissions()) return@setOnClickListener
                 if (!config.isConfigured) {
                     Toast.makeText(this, R.string.not_configured, Toast.LENGTH_LONG).show()
                     startActivity(Intent(this, SettingsActivity::class.java))
                     return@setOnClickListener
                 }
-                BackupWorker.runOnce(this)
+                BackupWorker.runOnce(this, config)
             } catch (t: Throwable) {
                 Toast.makeText(this, "Couldn't start: ${t.javaClass.simpleName}: ${t.message}", Toast.LENGTH_LONG).show()
             }
@@ -231,7 +237,15 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.stats_bytes, bytesDone, bytesPending)
         }
 
-        binding.btnBackupNow.isEnabled = !running && config.isConfigured
+        isRunning = running
+        binding.btnBackupNow.isEnabled = config.isConfigured
+        binding.btnBackupNow.text = getString(
+            if (running) R.string.action_stop else R.string.action_backup_now
+        )
+        binding.btnBackupNow.setIconResource(
+            if (running) android.R.drawable.ic_menu_close_clear_cancel
+            else android.R.drawable.stat_sys_upload
+        )
     }
 
     private fun handleWorkInfos(infos: List<WorkInfo>?) {

@@ -39,6 +39,7 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.btnSave.setOnClickListener { save() }
         binding.btnTest.setOnClickListener { test() }
+        binding.btnRebuildHistory.setOnClickListener { rebuildHistory() }
 
         binding.swImages.setOnCheckedChangeListener   { _, c -> config.backupImages    = c }
         binding.swVideos.setOnCheckedChangeListener   { _, c -> config.backupVideos    = c }
@@ -86,6 +87,38 @@ class SettingsActivity : AppCompatActivity() {
         config.sasToken = parsed.sasToken
         Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
         return true
+    }
+
+    private fun rebuildHistory() {
+        if (!config.isConfigured) {
+            Toast.makeText(this, R.string.not_configured, Toast.LENGTH_LONG).show()
+            return
+        }
+        binding.btnRebuildHistory.isEnabled = false
+        binding.btnRebuildHistory.text = getString(R.string.rebuild_running)
+        lifecycleScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                runCatching { BackupEngine.reconcileFromCloud(this@SettingsActivity, config) }
+            }
+            binding.btnRebuildHistory.isEnabled = true
+            binding.btnRebuildHistory.text = getString(R.string.action_rebuild_history)
+            outcome.fold(
+                onSuccess = { count ->
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        getString(R.string.rebuild_done, count),
+                        Toast.LENGTH_LONG
+                    ).show()
+                },
+                onFailure = { e ->
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        getString(R.string.rebuild_failed, e.message ?: e.javaClass.simpleName),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            )
+        }
     }
 
     private fun test() {

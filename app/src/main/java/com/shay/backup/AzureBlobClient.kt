@@ -1,9 +1,11 @@
 package com.shay.backup
 
+import android.util.Xml
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import org.xmlpull.v1.XmlPullParser
 
 /**
  * Minimal Azure Blob REST client that uses a SAS token for auth.
@@ -68,6 +70,63 @@ object AzureBlobClient {
         blobName: String,
         sas: String
     ): String = buildBlobUrl(accountUrl, container, blobName, sas)
+
+    /**
+     * Enumerates blob names in [container] using the List Blobs REST API.
+     * SAS must include `l` (list) permission. Pages internally up to [maxBlobs]
+     * names. Returns whatever it has on partial failure.
+     */
+    fun listBlobs(
+        accountUrl: String,
+        container: String,
+        sas: String,
+        maxBlobs: Int = 100_000
+    ): List<String> {
+        val out = ArrayList<String>()
+        val sasFragment = if (sas.startsWith("?")) sas.removePrefix("?") else sas
+        var marker: String? = null
+        val base = "${accountUrl.trimEnd('/')}/$container"
+        while (true) {
+            val markerPart = marker?.let { "&marker=" + URLEncoder.encode(it, "UTF-8") } ?: ""
+            val url = URL("$base?restype=container&comp=list&$sasFragment$markerPart")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 15_000
+                readTimeout = 60_000
+                setRequestProperty("x-ms-version", API_VERSION)
+            }
+            try {
+                if (conn.responseCode !in 200..299) return out
+                val (names, next) = parseListResponse(conn.inputStream)
+                out += names
+                marker = next
+                if (out.size >= maxBlobs || marker.isNullOrBlank()) return out
+            } finally {
+                conn.disconnect()
+            }
+        }
+    }
+
+    private fun parseListResponse(input: InputStream): Pair<List<String>, String?> {
+        val parser = Xml.newPullParser()
+        parser.setInput(input, "UTF-8")
+        val names = ArrayList<String>()
+        var nextMarker: String? = null
+        var inBlob = false
+        var event = parser.next()
+        while (event != XmlPullParser.END_DOCUMENT) {
+            when (event) {
+                XmlPullParser.START_TAG -> when (parser.name) {
+                    "Blob" -> inBlob = true
+                    "Name" -> if (inBlob) names += parser.nextText()
+                    "NextMarker" -> nextMarker = parser.nextText().takeIf { it.isNotBlank() }
+                }
+                XmlPullParser.END_TAG -> if (parser.name == "Blob") inBlob = false
+            }
+            event = parser.next()
+        }
+        return names to nextMarker
+    }
 
     private fun buildBlobUrl(
         accountUrl: String,

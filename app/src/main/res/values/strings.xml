@@ -13,8 +13,14 @@
     <string name="configured_label">Backing up to %1$s/%2$s</string>
 
     <string name="action_backup_now">Back up now</string>
+    <string name="action_stop">Stop</string>
+    <string name="stop_requested">Stopping after current file…</string>
     <string name="action_settings">Settings</string>
     <string name="action_grant_permissions">Grant permissions</string>
+    <string name="action_rebuild_history">Rebuild upload history from cloud</string>
+    <string name="rebuild_running">Listing blobs…</string>
+    <string name="rebuild_done">Marked %1$d files as already backed up.</string>
+    <string name="rebuild_failed">Rebuild failed: %1$s</string>
 
     <string name="tab_all">All</string>
     <string name="tab_pending">Pending</string>
