@@ -39,6 +39,15 @@ class BackupWorker(
             return@withContext Result.failure()
         }
 
+        // Strict Wi-Fi guard — independent of WorkManager's NetworkType.UNMETERED, because
+        // some carriers report 5G/cellular as not-metered.
+        if (config.wifiOnly && !NetworkUtils.isOnWifi(ctx)) {
+            AppInsights.trackTrace("backup.skipped.notOnWifi", severity = 2)
+            config.lastResult = "Waiting for Wi-Fi"
+            config.lastRunMs = System.currentTimeMillis()
+            return@withContext Result.retry()
+        }
+
         try {
             setForeground(makeForegroundInfo(0, 0, ""))
         } catch (_: Exception) { /* Foreground may be denied on some devices; continue. */ }

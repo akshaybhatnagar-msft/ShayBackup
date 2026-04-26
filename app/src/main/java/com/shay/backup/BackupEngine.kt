@@ -46,6 +46,8 @@ object BackupEngine {
             // Cooperative cancellation: if WorkManager cancels us (Stop button,
             // network-constraint loss, etc.), stop between items and persist what we have.
             if (!currentCoroutineContext().isActive) return@runLoop
+            // Mid-run network handover guard — stop if we drop off Wi-Fi while wifi-only is on.
+            if (config.wifiOnly && !NetworkUtils.isOnWifi(context)) return@runLoop
             onProgress(Progress(index, pending.size, item.fileName))
             val ok = uploadOne(context, config, item)
             if (ok) {
