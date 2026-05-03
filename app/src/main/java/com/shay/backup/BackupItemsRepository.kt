@@ -13,7 +13,7 @@ object BackupItemsRepository {
         config: ConfigStore,
         currentlyUploadingKey: String? = null
     ): List<BackupItem> {
-        val media = MediaScanner.scan(context, config)
+        val media = MediaScanner.scan(context, config).sortedByDescending { it.modifiedMs }
         val uploaded = config.uploadedKeys()
         val failed = config.failedKeys()
         return media.map { m ->

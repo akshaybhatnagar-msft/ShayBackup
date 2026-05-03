@@ -80,6 +80,11 @@ class ConfigStore(context: Context) {
         get() = prefs.getBoolean(K_SHARE_WARNED, false)
         set(value) { prefs.edit().putBoolean(K_SHARE_WARNED, value).apply() }
 
+    /** "list" or "tile" — persisted across launches. Default tile. */
+    var viewMode: String
+        get() = prefs.getString(K_VIEW_MODE, "tile").orEmpty().ifBlank { "tile" }
+        set(value) { prefs.edit().putString(K_VIEW_MODE, value).apply() }
+
     // ── Dedupe history ──────────────────────────────────────────────────────
 
     fun isBackedUp(key: String): Boolean = prefs.getStringSet(K_HISTORY, emptySet())!!.contains(key)
@@ -134,5 +139,6 @@ class ConfigStore(context: Context) {
         private const val K_HISTORY = "uploaded_keys"
         private const val K_FAILED = "failed_keys"
         private const val K_SHARE_WARNED = "share_scope_warned"
+        private const val K_VIEW_MODE = "view_mode"
     }
 }

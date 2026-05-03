@@ -22,6 +22,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.work.WorkInfo
 import com.shay.backup.databinding.ActivityMainBinding
@@ -71,11 +72,13 @@ class MainActivity : AppCompatActivity() {
             onItemClick = ::openItem,
             onItemLongClick = ::onItemLongPress
         )
-        binding.rvItems.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = itemsAdapter
-            setHasFixedSize(true)
-        }
+        itemsAdapter.mode = if (config.viewMode == "list")
+            BackupItemsAdapter.ViewMode.LIST
+        else
+            BackupItemsAdapter.ViewMode.TILE
+        binding.rvItems.adapter = itemsAdapter
+        binding.rvItems.setHasFixedSize(true)
+        applyViewMode(itemsAdapter.mode)
 
         binding.btnBackupNow.setOnClickListener {
             try {
@@ -138,7 +141,40 @@ class MainActivity : AppCompatActivity() {
         R.id.action_settings -> {
             startActivity(Intent(this, SettingsActivity::class.java)); true
         }
+        R.id.action_view_mode -> {
+            toggleViewMode(); true
+        }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        // Show the icon for the OTHER mode — what tapping will switch to.
+        val toggle = menu.findItem(R.id.action_view_mode)
+        toggle?.setIcon(
+            if (itemsAdapter.mode == BackupItemsAdapter.ViewMode.TILE)
+                R.drawable.ic_view_list
+            else
+                R.drawable.ic_view_grid
+        )
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    private fun toggleViewMode() {
+        val next = if (itemsAdapter.mode == BackupItemsAdapter.ViewMode.TILE)
+            BackupItemsAdapter.ViewMode.LIST
+        else
+            BackupItemsAdapter.ViewMode.TILE
+        itemsAdapter.mode = next
+        config.viewMode = if (next == BackupItemsAdapter.ViewMode.TILE) "tile" else "list"
+        applyViewMode(next)
+        invalidateOptionsMenu()
+    }
+
+    private fun applyViewMode(mode: BackupItemsAdapter.ViewMode) {
+        binding.rvItems.layoutManager = when (mode) {
+            BackupItemsAdapter.ViewMode.TILE -> GridLayoutManager(this, 3)
+            BackupItemsAdapter.ViewMode.LIST -> LinearLayoutManager(this)
+        }
     }
 
     private fun ensurePermissions(): Boolean {
