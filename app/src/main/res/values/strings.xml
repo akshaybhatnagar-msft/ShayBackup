@@ -23,6 +23,19 @@
     <string name="rebuild_done">Marked %1$d files as already backed up.</string>
     <string name="rebuild_failed">Rebuild failed: %1$s</string>
 
+    <string name="sharing_section">Sharing (advanced)</string>
+    <string name="sharing_help">To share photos selectively (with their own scoped, expiring links), the app needs the storage account key so it can sign per-share SAS tokens. Stored encrypted on this device only.</string>
+    <string name="connection_string">Storage connection string</string>
+    <string name="connection_string_hint">DefaultEndpointsProtocol=https;AccountName=…;AccountKey=…;EndpointSuffix=core.windows.net</string>
+    <string name="action_test_signing">Test signing</string>
+    <string name="action_clear_key">Remove account key from this device</string>
+    <string name="key_saved">Account key saved (encrypted)</string>
+    <string name="key_cleared">Account key removed</string>
+    <string name="conn_string_invalid">That doesn\'t look like a connection string. Expected DefaultEndpointsProtocol=…;AccountName=…;AccountKey=…</string>
+    <string name="account_name_mismatch">Account name in connection string (%1$s) doesn\'t match SAS URL account (%2$s)</string>
+    <string name="test_signing_ok">SAS signing works — List Blobs returned HTTP %1$d</string>
+    <string name="test_signing_no_key">Add a connection string above first.</string>
+
     <string name="tab_all">All</string>
     <string name="tab_pending">Pending</string>
     <string name="tab_done">Backed up</string>

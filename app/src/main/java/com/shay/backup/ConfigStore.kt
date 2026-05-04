@@ -32,6 +32,24 @@ class ConfigStore(context: Context) {
     val isConfigured: Boolean
         get() = accountUrl.isNotBlank() && container.isNotBlank() && sasToken.isNotBlank()
 
+    /** Account name parsed from accountUrl (the part before `.blob.core.windows.net`). */
+    val accountName: String
+        get() {
+            val host = accountUrl
+                .removePrefix("https://").removePrefix("http://")
+                .substringBefore('/')
+            return host.substringBefore('.')
+        }
+
+    /** Encrypted-at-rest. Optional — only required to mint per-share SAS tokens. */
+    private val ctx = context.applicationContext
+    var accountKey: String
+        get() = Secrets.getAccountKey(ctx)
+        set(value) { Secrets.setAccountKey(ctx, value) }
+
+    val canSignSas: Boolean
+        get() = accountKey.isNotBlank() && accountName.isNotBlank()
+
     // ── Sources ─────────────────────────────────────────────────────────────
 
     var backupImages: Boolean

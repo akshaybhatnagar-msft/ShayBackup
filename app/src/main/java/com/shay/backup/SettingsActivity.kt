@@ -9,6 +9,8 @@ import com.shay.backup.databinding.ActivitySettingsBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -40,6 +42,13 @@ class SettingsActivity : AppCompatActivity() {
         binding.btnSave.setOnClickListener { save() }
         binding.btnTest.setOnClickListener { test() }
         binding.btnRebuildHistory.setOnClickListener { rebuildHistory() }
+        binding.btnSaveKey.setOnClickListener { saveAccountKey() }
+        binding.btnTestSign.setOnClickListener { testSigning() }
+        binding.btnClearKey.setOnClickListener { clearAccountKey() }
+        // Show a placeholder so the user knows a key is set without revealing it.
+        if (config.accountKey.isNotBlank()) {
+            binding.etConnString.setText("AccountKey=•••••••••• (set)")
+        }
 
         binding.swImages.setOnCheckedChangeListener   { _, c -> config.backupImages    = c }
         binding.swVideos.setOnCheckedChangeListener   { _, c -> config.backupVideos    = c }
@@ -87,6 +96,91 @@ class SettingsActivity : AppCompatActivity() {
         config.sasToken = parsed.sasToken
         Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
         return true
+    }
+
+    // ── Sharing auth (account key) ──────────────────────────────────────────
+
+    private fun saveAccountKey() {
+        val raw = binding.etConnString.text?.toString().orEmpty()
+        if (raw.startsWith("AccountKey=••")) {
+            // Placeholder — user didn't change it.
+            Toast.makeText(this, R.string.key_saved, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val parsed = StorageConnectionString.parse(raw)
+        if (parsed == null) {
+            binding.connStringLayout.error = getString(R.string.conn_string_invalid)
+            return
+        }
+        // Sanity-check the account name matches the existing SAS URL, if set.
+        val sasAccount = config.accountName
+        if (sasAccount.isNotBlank() && !sasAccount.equals(parsed.accountName, ignoreCase = true)) {
+            binding.connStringLayout.error = getString(
+                R.string.account_name_mismatch, parsed.accountName, sasAccount
+            )
+            return
+        }
+        binding.connStringLayout.error = null
+        config.accountKey = parsed.accountKey
+        binding.etConnString.setText("AccountKey=•••••••••• (set)")
+        Toast.makeText(this, R.string.key_saved, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun clearAccountKey() {
+        config.accountKey = ""
+        binding.etConnString.setText("")
+        Toast.makeText(this, R.string.key_cleared, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun testSigning() {
+        if (!config.canSignSas) {
+            Toast.makeText(this, R.string.test_signing_no_key, Toast.LENGTH_LONG).show()
+            return
+        }
+        binding.btnTestSign.isEnabled = false
+        lifecycleScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                runCatching {
+                    val now = System.currentTimeMillis()
+                    val sas = SasSigner.containerReadSas(
+                        accountName = config.accountName,
+                        accountKeyBase64 = config.accountKey,
+                        containerName = config.container,
+                        startMs = now - 5 * 60_000L,
+                        expiryMs = now + 5 * 60_000L,
+                        includeList = true
+                    )
+                    val url = URL(
+                        "${config.accountUrl}/${config.container}" +
+                            "?restype=container&comp=list&" + sas.removePrefix("?")
+                    )
+                    val conn = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        connectTimeout = 15_000
+                        readTimeout = 30_000
+                        setRequestProperty("x-ms-version", "2020-04-08")
+                    }
+                    try { conn.responseCode } finally { conn.disconnect() }
+                }
+            }
+            binding.btnTestSign.isEnabled = true
+            outcome.fold(
+                onSuccess = { code ->
+                    val msg = if (code in 200..299)
+                        getString(R.string.test_signing_ok, code)
+                    else
+                        getString(R.string.test_fail, "HTTP $code")
+                    Toast.makeText(this@SettingsActivity, msg, Toast.LENGTH_LONG).show()
+                },
+                onFailure = { e ->
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        getString(R.string.test_fail, e.message ?: e.javaClass.simpleName),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            )
+        }
     }
 
     private fun rebuildHistory() {
