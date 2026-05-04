@@ -33,8 +33,46 @@ class BackupItemsAdapter(
     private val context: Context,
     private val scope: CoroutineScope,
     private val onItemClick: (BackupItem) -> Unit = {},
-    private val onItemLongClick: (BackupItem) -> Unit = {}
+    private val onItemLongClick: (BackupItem) -> Unit = {},
+    private val onSelectionChanged: () -> Unit = {}
 ) : ListAdapter<BackupItem, RecyclerView.ViewHolder>(DIFF) {
+
+    val selectedKeys: LinkedHashSet<String> = LinkedHashSet()
+    var selectionMode: Boolean = false
+        private set
+
+    fun selectedItems(): List<BackupItem> {
+        val byKey = currentList.associateBy { it.key }
+        return selectedKeys.mapNotNull { byKey[it] }
+    }
+
+    fun startSelectionWith(item: BackupItem) {
+        selectionMode = true
+        selectedKeys.add(item.key)
+        onSelectionChanged()
+        @Suppress("NotifyDataSetChanged") notifyDataSetChanged()
+    }
+
+    fun toggleSelection(item: BackupItem) {
+        if (!selectionMode) return
+        if (!selectedKeys.add(item.key)) selectedKeys.remove(item.key)
+        if (selectedKeys.isEmpty()) {
+            selectionMode = false
+        }
+        onSelectionChanged()
+        notifyItemChanged(currentList.indexOfFirst { it.key == item.key })
+        if (!selectionMode) {
+            @Suppress("NotifyDataSetChanged") notifyDataSetChanged()
+        }
+    }
+
+    fun clearSelection() {
+        if (selectedKeys.isEmpty() && !selectionMode) return
+        selectedKeys.clear()
+        selectionMode = false
+        onSelectionChanged()
+        @Suppress("NotifyDataSetChanged") notifyDataSetChanged()
+    }
 
     enum class ViewMode { LIST, TILE }
 
@@ -86,8 +124,14 @@ class BackupItemsAdapter(
 
         fun bind(item: BackupItem) {
             val b = binding
-            b.root.setOnClickListener { onItemClick(item) }
-            b.root.setOnLongClickListener { onItemLongClick(item); true }
+            b.root.setOnClickListener {
+                if (selectionMode) toggleSelection(item) else onItemClick(item)
+            }
+            b.root.setOnLongClickListener {
+                if (!selectionMode) startSelectionWith(item) else toggleSelection(item)
+                true
+            }
+            b.root.alpha = if (selectionMode && selectedKeys.contains(item.key)) 0.55f else 1f
             b.tvName.text = item.fileName
             b.tvMeta.text = "${Formatter.formatShortFileSize(context, item.size)} · " +
                     dateFmt.format(Date(item.modifiedMs))
@@ -128,8 +172,15 @@ class BackupItemsAdapter(
 
         fun bind(item: BackupItem) {
             val b = binding
-            b.root.setOnClickListener { onItemClick(item) }
-            b.root.setOnLongClickListener { onItemLongClick(item); true }
+            b.root.setOnClickListener {
+                if (selectionMode) toggleSelection(item) else onItemClick(item)
+            }
+            b.root.setOnLongClickListener {
+                if (!selectionMode) startSelectionWith(item) else toggleSelection(item)
+                true
+            }
+            val isSelected = selectionMode && selectedKeys.contains(item.key)
+            b.root.alpha = if (isSelected) 0.55f else 1f
 
             // Status dot in corner
             val dotColor = ContextCompat.getColor(context, dotColorFor(item.status))

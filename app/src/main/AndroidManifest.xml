@@ -43,6 +43,11 @@
             android:parentActivityName=".MainActivity"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".SharesActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
         <!-- Make WorkManager's foreground service declare dataSync so setForeground
              succeeds on Android 14+. Merged onto the library entry. -->
         <service

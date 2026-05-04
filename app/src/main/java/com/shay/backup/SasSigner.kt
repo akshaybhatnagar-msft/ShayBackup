@@ -42,6 +42,45 @@ object SasSigner {
         )
     }
 
+    /**
+     * Account-level SAS. Signs operations across all containers in the account.
+     * Used to create/delete share containers and to do server-side Copy Blob.
+     */
+    fun accountSas(
+        accountName: String,
+        accountKeyBase64: String,
+        permissions: String,        // e.g. "rwdlc"  read/write/delete/list/create
+        services: String,           // "b" for blob
+        resourceTypes: String,      // any of "s" (service), "c" (container), "o" (object)
+        startMs: Long,
+        expiryMs: Long
+    ): String {
+        val st = isoTime(startMs)
+        val se = isoTime(expiryMs)
+        val stringToSign = listOf(
+            accountName,
+            permissions,
+            services,
+            resourceTypes,
+            st,
+            se,
+            "",                 // signedIP
+            "https",            // signedProtocol
+            API_VERSION
+        ).joinToString("\n") + "\n"  // trailing newline required by spec
+        val sig = sign(stringToSign, accountKeyBase64)
+        return buildString {
+            append("?sv=").append(API_VERSION)
+            append("&ss=").append(services)
+            append("&srt=").append(resourceTypes)
+            append("&sp=").append(permissions)
+            append("&st=").append(urlEncode(st))
+            append("&se=").append(urlEncode(se))
+            append("&spr=https")
+            append("&sig=").append(urlEncode(sig))
+        }
+    }
+
     /** Read-only single-blob SAS valid from [startMs] to [expiryMs]. */
     fun blobReadSas(
         accountName: String,

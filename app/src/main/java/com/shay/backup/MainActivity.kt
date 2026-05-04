@@ -70,7 +70,8 @@ class MainActivity : AppCompatActivity() {
             context = this,
             scope = lifecycleScope,
             onItemClick = ::openItem,
-            onItemLongClick = ::onItemLongPress
+            onItemLongClick = ::onItemLongPress,
+            onSelectionChanged = ::onSelectionChanged
         )
         itemsAdapter.mode = if (config.viewMode == "list")
             BackupItemsAdapter.ViewMode.LIST
@@ -133,7 +134,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
+        if (itemsAdapter.selectionMode) {
+            menuInflater.inflate(R.menu.selection_menu, menu)
+        } else {
+            menuInflater.inflate(R.menu.main_menu, menu)
+        }
         return true
     }
 
@@ -144,7 +149,83 @@ class MainActivity : AppCompatActivity() {
         R.id.action_view_mode -> {
             toggleViewMode(); true
         }
+        R.id.action_shared_galleries -> {
+            startActivity(Intent(this, SharesActivity::class.java)); true
+        }
+        R.id.action_share_selected -> {
+            shareSelected(); true
+        }
+        android.R.id.home -> {
+            // Pressed back arrow in selection-mode toolbar.
+            if (itemsAdapter.selectionMode) { itemsAdapter.clearSelection(); true }
+            else super.onOptionsItemSelected(item)
+        }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    @Suppress("OverrideDeprecatedMigration")
+    @Deprecated("OnBackPressed superseded but the dispatcher version is more code")
+    override fun onBackPressed() {
+        if (itemsAdapter.selectionMode) {
+            itemsAdapter.clearSelection()
+            return
+        }
+        @Suppress("DEPRECATION")
+        super.onBackPressed()
+    }
+
+    private fun onSelectionChanged() {
+        invalidateOptionsMenu()
+        if (itemsAdapter.selectionMode) {
+            supportActionBar?.title = getString(
+                R.string.selection_count, itemsAdapter.selectedKeys.size
+            )
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        } else {
+            supportActionBar?.title = getString(R.string.app_name)
+            supportActionBar?.setDisplayHomeAsUpEnabled(false)
+        }
+    }
+
+    private fun shareSelected() {
+        if (!config.canSignSas) {
+            Toast.makeText(this, R.string.share_no_key, Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, SettingsActivity::class.java))
+            return
+        }
+        val items = itemsAdapter.selectedItems()
+        if (items.isEmpty()) return
+        val running = Toast.makeText(this, R.string.share_running, Toast.LENGTH_SHORT)
+        running.show()
+        lifecycleScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                runCatching { ShareBundleBuilder.share(this@MainActivity, config, items) }
+            }
+            running.cancel()
+            outcome.fold(
+                onSuccess = { result ->
+                    itemsAdapter.clearSelection()
+                    Toast.makeText(
+                        this@MainActivity,
+                        getString(R.string.share_done, result.shareId),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "Photos shared via Shay Backup")
+                        putExtra(Intent.EXTRA_TEXT, result.galleryUrl)
+                    }
+                    startActivity(Intent.createChooser(send, getString(R.string.action_share_selected)))
+                },
+                onFailure = { e ->
+                    Toast.makeText(
+                        this@MainActivity,
+                        getString(R.string.share_failed, e.message ?: e.javaClass.simpleName),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            )
+        }
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {

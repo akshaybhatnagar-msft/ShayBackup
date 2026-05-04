@@ -36,6 +36,27 @@
     <string name="test_signing_ok">SAS signing works — List Blobs returned HTTP %1$d</string>
     <string name="test_signing_no_key">Add a connection string above first.</string>
 
+    <string name="action_share_selected">Share</string>
+    <string name="action_shared_galleries">Shared galleries</string>
+    <string name="selection_count">%1$d selected</string>
+    <string name="share_no_key">Add the storage connection string in Settings → Sharing first.</string>
+    <string name="share_running">Building share gallery…</string>
+    <string name="share_done">Share ready · %1$s</string>
+    <string name="share_failed">Share failed: %1$s</string>
+    <string name="copy_gallery_link">Copy link</string>
+    <string name="open_in_browser">Open</string>
+    <string name="delete_gallery">Delete</string>
+    <string name="delete_gallery_confirm">Delete share-%1$s?\n\nThe link stops working immediately. Photos in your main backup container are unaffected.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel_btn">Cancel</string>
+    <string name="loading_galleries">Loading galleries…</string>
+    <string name="no_galleries">No shared galleries yet.</string>
+    <string name="galleries_failed">Couldn\'t load galleries: %1$s</string>
+    <string name="galleries_count">%1$d shared</string>
+    <string name="created_label">Created</string>
+    <string name="gallery_deleted">Gallery deleted</string>
+    <string name="gallery_delete_failed">Delete failed: HTTP %1$d</string>
+
     <string name="tab_all">All</string>
     <string name="tab_pending">Pending</string>
     <string name="tab_done">Backed up</string>
