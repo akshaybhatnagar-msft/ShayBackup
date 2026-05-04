@@ -11,6 +11,14 @@
     android:focusable="true"
     android:background="?attr/selectableItemBackground">
 
+    <ImageView
+        android:id="@+id/selectionCheck"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginEnd="12dp"
+        android:contentDescription="@null"
+        android:visibility="gone" />
+
     <FrameLayout
         android:layout_width="56dp"
         android:layout_height="56dp"

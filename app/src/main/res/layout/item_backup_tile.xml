@@ -38,9 +38,25 @@
             android:id="@+id/statusDot"
             android:layout_width="12dp"
             android:layout_height="12dp"
-            android:layout_gravity="top|end"
+            android:layout_gravity="bottom|end"
             android:layout_margin="6dp"
             android:background="@drawable/bg_tile_status_dot" />
+
+        <View
+            android:id="@+id/selectionBorder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_tile_selected"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/selectionCheck"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="8dp"
+            android:contentDescription="@null"
+            android:visibility="gone" />
     </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

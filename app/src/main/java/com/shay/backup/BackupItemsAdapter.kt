@@ -131,7 +131,7 @@ class BackupItemsAdapter(
                 if (!selectionMode) startSelectionWith(item) else toggleSelection(item)
                 true
             }
-            b.root.alpha = if (selectionMode && selectedKeys.contains(item.key)) 0.55f else 1f
+            applyListSelectionVisuals(b.selectionCheck, selectionMode, selectedKeys.contains(item.key))
             b.tvName.text = item.fileName
             b.tvMeta.text = "${Formatter.formatShortFileSize(context, item.size)} · " +
                     dateFmt.format(Date(item.modifiedMs))
@@ -180,7 +180,7 @@ class BackupItemsAdapter(
                 true
             }
             val isSelected = selectionMode && selectedKeys.contains(item.key)
-            b.root.alpha = if (isSelected) 0.55f else 1f
+            applyTileSelectionVisuals(b.selectionCheck, b.selectionBorder, b.statusDot, selectionMode, isSelected)
 
             // Status dot in corner
             val dotColor = ContextCompat.getColor(context, dotColorFor(item.status))
@@ -217,6 +217,39 @@ class BackupItemsAdapter(
 
     private suspend fun loadThumb(uri: Uri, size: Size): Bitmap? = withContext(Dispatchers.IO) {
         runCatching { resolver.loadThumbnail(uri, size, null) }.getOrNull()
+    }
+
+    private fun applyListSelectionVisuals(check: ImageView, inMode: Boolean, isSelected: Boolean) {
+        if (!inMode) {
+            check.visibility = View.GONE
+            return
+        }
+        check.visibility = View.VISIBLE
+        check.setImageResource(
+            if (isSelected) R.drawable.bg_check_checked else R.drawable.bg_check_unchecked
+        )
+    }
+
+    private fun applyTileSelectionVisuals(
+        check: ImageView,
+        border: View,
+        statusDot: View,
+        inMode: Boolean,
+        isSelected: Boolean
+    ) {
+        if (!inMode) {
+            check.visibility = View.GONE
+            border.visibility = View.GONE
+            statusDot.visibility = View.VISIBLE
+            return
+        }
+        check.visibility = View.VISIBLE
+        check.setImageResource(
+            if (isSelected) R.drawable.bg_check_checked else R.drawable.bg_check_unchecked
+        )
+        border.visibility = if (isSelected) View.VISIBLE else View.GONE
+        // Status dot would compete with the corner check; hide while selecting.
+        statusDot.visibility = View.GONE
     }
 
     private fun iconFor(category: MediaScanner.Category): Int = when (category) {
