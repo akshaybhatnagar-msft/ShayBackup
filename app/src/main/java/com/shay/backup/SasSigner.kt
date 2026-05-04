@@ -19,7 +19,12 @@ import javax.crypto.spec.SecretKeySpec
  */
 object SasSigner {
 
-    private const val API_VERSION = "2020-04-08"
+    /**
+     * 2020-12-06 = first version that includes signedEncryptionScope in the
+     * service SAS and account SAS canonical StringToSign. Our signing code
+     * generates that format, so `sv` must match.
+     */
+    private const val API_VERSION = "2020-12-06"
 
     /** Read-only (optionally list) container SAS valid from [startMs] to [expiryMs]. */
     fun containerReadSas(
@@ -66,7 +71,8 @@ object SasSigner {
             se,
             "",                 // signedIP
             "https",            // signedProtocol
-            API_VERSION
+            API_VERSION,
+            ""                  // signedEncryptionScope — required since 2020-12-06
         ).joinToString("\n") + "\n"  // trailing newline required by spec
         val sig = sign(stringToSign, accountKeyBase64)
         return buildString {

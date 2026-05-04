@@ -14,7 +14,7 @@ import java.net.URLEncoder
  */
 object AzureAdmin {
 
-    private const val API_VERSION = "2020-04-08"
+    private const val API_VERSION = "2020-12-06"
 
     data class ContainerSummary(val name: String, val lastModified: String?)
 

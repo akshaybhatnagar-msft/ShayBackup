@@ -158,7 +158,7 @@ class SettingsActivity : AppCompatActivity() {
                         requestMethod = "GET"
                         connectTimeout = 15_000
                         readTimeout = 30_000
-                        setRequestProperty("x-ms-version", "2020-04-08")
+                        setRequestProperty("x-ms-version", "2020-12-06")
                     }
                     try { conn.responseCode } finally { conn.disconnect() }
                 }
