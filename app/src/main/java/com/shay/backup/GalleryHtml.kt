@@ -34,10 +34,26 @@ object GalleryHtml {
             val href = "$baseUrl/${encodePath(e.blobName)}$readSasQs"
             val size = Formatter.formatShortFileSize(context, e.sizeBytes)
             val safeName = htmlEscape(e.displayName)
+            val mime = e.mimeType.lowercase()
+            val isVideo = mime.startsWith("video/")
+            val isImage = mime.startsWith("image/")
+            val preview = when {
+                isVideo -> {
+                    // #t=0.1 hints at a frame past 0s — many encoders have a black frame at 0.
+                    val src = htmlEscape("$href#t=0.1")
+                    """<video class="media" src="$src" preload="metadata" muted playsinline></video>
+                       <div class="play-badge" aria-hidden="true"><span></span></div>""".trimIndent()
+                }
+                isImage -> """<img class="media" src="${htmlEscape(href)}" alt="$safeName" loading="lazy">"""
+                else    -> """<div class="file-glyph">📄</div>"""
+            }
+            val tileClass = if (isVideo) "tile is-video" else "tile"
             """
-            <div class="tile">
-              <a href="${htmlEscape(href)}" target="_blank" rel="noopener noreferrer" download>
-                <div class="thumb"><img src="${htmlEscape(href)}" alt="$safeName" loading="lazy"></div>
+            <div class="$tileClass">
+              <a href="${htmlEscape(href)}" target="_blank" rel="noopener noreferrer" download title="$safeName">
+                <div class="thumb">
+                  $preview
+                </div>
                 <div class="meta">
                   <div class="name">$safeName</div>
                   <div class="size">$size</div>
@@ -136,7 +152,48 @@ body {
   background: linear-gradient(180deg, transparent 70%, rgba(0,0,0,0.04) 100%);
   pointer-events: none;
 }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .media {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #0c1424;       /* dark fallback while video metadata loads */
+  pointer-events: none;       /* let taps fall through to the parent <a> */
+}
+.thumb .file-glyph {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3rem;
+  color: var(--muted);
+  background: var(--primary-50);
+}
+.thumb .play-badge {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.thumb .play-badge span {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  display: block;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.thumb .play-badge span::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 54%;
+  transform: translate(-50%, -50%);
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 10px 0 10px 16px;
+  border-color: transparent transparent transparent #FFFFFF;
+}
+.tile.is-video:hover .play-badge span {
+  background: rgba(59, 90, 232, 0.85);
+  transform: scale(1.06);
+}
 .meta-row {
   padding: 12px 14px;
   border-top: 1px solid var(--border-light);
