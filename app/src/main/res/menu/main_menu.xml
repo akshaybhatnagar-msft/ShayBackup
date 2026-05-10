@@ -9,6 +9,11 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_sort"
+        android:title="@string/action_sort"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_shared_galleries"
         android:title="@string/action_shared_galleries"
         app:showAsAction="never" />

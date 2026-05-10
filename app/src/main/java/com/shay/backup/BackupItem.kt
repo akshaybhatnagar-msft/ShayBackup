@@ -4,10 +4,6 @@ import android.net.Uri
 
 enum class BackupStatus { DONE, PENDING, FAILED, UPLOADING }
 
-/**
- * A scanned media item joined with its current backup status.
- * Computed in [BackupItemsRepository.collect].
- */
 data class BackupItem(
     val key: String,
     val category: MediaScanner.Category,
@@ -15,6 +11,9 @@ data class BackupItem(
     val fileName: String,
     val mimeType: String,
     val size: Long,
+    /** Best-effort creation time (DATE_TAKEN if present, else DATE_ADDED). */
+    val createdMs: Long,
+    /** File-system / metadata last-modified time (DATE_MODIFIED). */
     val modifiedMs: Long,
     val status: BackupStatus
 )

@@ -103,6 +103,11 @@ class ConfigStore(context: Context) {
         get() = prefs.getString(K_VIEW_MODE, "tile").orEmpty().ifBlank { "tile" }
         set(value) { prefs.edit().putString(K_VIEW_MODE, value).apply() }
 
+    /** "created" or "modified" — used by BackupItemsRepository to sort. Default created. */
+    var sortMode: String
+        get() = prefs.getString(K_SORT_MODE, "created").orEmpty().ifBlank { "created" }
+        set(value) { prefs.edit().putString(K_SORT_MODE, value).apply() }
+
     // ── Dedupe history ──────────────────────────────────────────────────────
 
     fun isBackedUp(key: String): Boolean = prefs.getStringSet(K_HISTORY, emptySet())!!.contains(key)
@@ -158,5 +163,6 @@ class ConfigStore(context: Context) {
         private const val K_FAILED = "failed_keys"
         private const val K_SHARE_WARNED = "share_scope_warned"
         private const val K_VIEW_MODE = "view_mode"
+        private const val K_SORT_MODE = "sort_mode"
     }
 }

@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.work.WorkInfo
 import com.shay.backup.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var currentTab: Tab = Tab.ALL
     private var currentlyUploadingKey: String? = null
     private var isRunning: Boolean = false
+    private var showSelectedOnly: Boolean = false
 
     private val refreshHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshScan() }
@@ -114,6 +116,33 @@ class MainActivity : AppCompatActivity() {
         }
 
         BackupWorker.observeOneShot(this).observe(this) { infos -> handleWorkInfos(infos) }
+
+        // Scroll FABs
+        binding.fabScrollTop.setOnClickListener {
+            binding.rvItems.smoothScrollToPosition(0)
+        }
+        binding.fabScrollBottom.setOnClickListener {
+            val n = itemsAdapter.itemCount
+            if (n > 0) binding.rvItems.smoothScrollToPosition(n - 1)
+        }
+        binding.rvItems.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) { updateScrollFabs() }
+            override fun onScrollStateChanged(rv: RecyclerView, newState: Int) { updateScrollFabs() }
+        })
+    }
+
+    private fun updateScrollFabs() {
+        // Hide both during selection mode (toolbar action bar already provides controls).
+        if (itemsAdapter.selectionMode) {
+            binding.fabScrollTop.visibility = View.GONE
+            binding.fabScrollBottom.visibility = View.GONE
+            return
+        }
+        val rv = binding.rvItems
+        val canUp = rv.canScrollVertically(-1)
+        val canDown = rv.canScrollVertically(1)
+        binding.fabScrollTop.visibility = if (canUp) View.VISIBLE else View.GONE
+        binding.fabScrollBottom.visibility = if (canDown) View.VISIBLE else View.GONE
     }
 
     override fun onResume() {
@@ -149,11 +178,17 @@ class MainActivity : AppCompatActivity() {
         R.id.action_view_mode -> {
             toggleViewMode(); true
         }
+        R.id.action_sort -> {
+            showSortDialog(); true
+        }
         R.id.action_shared_galleries -> {
             startActivity(Intent(this, SharesActivity::class.java)); true
         }
         R.id.action_share_selected -> {
             shareSelected(); true
+        }
+        R.id.action_show_selected -> {
+            toggleShowSelectedOnly(); true
         }
         android.R.id.home -> {
             // Pressed back arrow in selection-mode toolbar.
@@ -161,6 +196,29 @@ class MainActivity : AppCompatActivity() {
             else super.onOptionsItemSelected(item)
         }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    private fun showSortDialog() {
+        val labels = arrayOf(
+            getString(R.string.sort_created),
+            getString(R.string.sort_modified)
+        )
+        val current = if (config.sortMode == "modified") 1 else 0
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sort_title)
+            .setSingleChoiceItems(labels, current) { dlg, which ->
+                config.sortMode = if (which == 1) "modified" else "created"
+                dlg.dismiss()
+                refreshScan()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun toggleShowSelectedOnly() {
+        showSelectedOnly = !showSelectedOnly
+        applyFilter()
+        invalidateOptionsMenu()
     }
 
     @Suppress("OverrideDeprecatedMigration")
@@ -184,7 +242,13 @@ class MainActivity : AppCompatActivity() {
         } else {
             supportActionBar?.title = getString(R.string.app_name)
             supportActionBar?.setDisplayHomeAsUpEnabled(false)
+            // Leaving selection mode also exits the "show selected only" filter.
+            if (showSelectedOnly) {
+                showSelectedOnly = false
+                applyFilter()
+            }
         }
+        updateScrollFabs()
     }
 
     private fun shareSelected() {
@@ -230,12 +294,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         // Show the icon for the OTHER mode — what tapping will switch to.
-        val toggle = menu.findItem(R.id.action_view_mode)
-        toggle?.setIcon(
+        val viewToggle = menu.findItem(R.id.action_view_mode)
+        viewToggle?.setIcon(
             if (itemsAdapter.mode == BackupItemsAdapter.ViewMode.TILE)
                 R.drawable.ic_view_list
             else
                 R.drawable.ic_view_grid
+        )
+        // Toggle title for the show-selected-only action so it tells you what tapping will do.
+        menu.findItem(R.id.action_show_selected)?.setTitle(
+            if (showSelectedOnly) R.string.action_show_all else R.string.action_show_selected
         )
         return super.onPrepareOptionsMenu(menu)
     }
@@ -300,11 +368,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyFilter() {
-        val filtered = when (currentTab) {
+        var filtered = when (currentTab) {
             Tab.ALL     -> allItems
             Tab.PENDING -> allItems.filter { it.status == BackupStatus.PENDING || it.status == BackupStatus.UPLOADING }
             Tab.DONE    -> allItems.filter { it.status == BackupStatus.DONE }
             Tab.FAILED  -> allItems.filter { it.status == BackupStatus.FAILED }
+        }
+        if (showSelectedOnly && itemsAdapter.selectionMode) {
+            val keys = itemsAdapter.selectedKeys
+            filtered = filtered.filter { keys.contains(it.key) }
         }
         if (filtered.isEmpty()) {
             binding.rvItems.visibility = View.GONE
@@ -318,8 +390,10 @@ class MainActivity : AppCompatActivity() {
         } else {
             binding.rvItems.visibility = View.VISIBLE
             binding.tvEmpty.visibility = View.GONE
-            itemsAdapter.submitList(filtered)
+            itemsAdapter.submitList(filtered) { updateScrollFabs() }
         }
+        // Hide FABs when there's no list visible.
+        binding.rvItems.post { updateScrollFabs() }
     }
 
     private fun renderHeader(items: List<BackupItem>, runningTotal: Int?, runningDone: Int?) {

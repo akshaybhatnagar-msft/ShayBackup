@@ -7,16 +7,21 @@ object BackupItemsRepository {
     /**
      * Scans MediaStore once and joins each row against [ConfigStore] history.
      * The optional [currentlyUploadingKey] is used to mark exactly one item as UPLOADING.
+     * Sorted newest-first based on [ConfigStore.sortMode].
      */
     fun collect(
         context: Context,
         config: ConfigStore,
         currentlyUploadingKey: String? = null
     ): List<BackupItem> {
-        val media = MediaScanner.scan(context, config).sortedByDescending { it.modifiedMs }
+        val raw = MediaScanner.scan(context, config)
+        val sorted = when (config.sortMode) {
+            "modified" -> raw.sortedByDescending { it.modifiedMs }
+            else       -> raw.sortedByDescending { it.createdMs }
+        }
         val uploaded = config.uploadedKeys()
         val failed = config.failedKeys()
-        return media.map { m ->
+        return sorted.map { m ->
             val status = when {
                 m.key == currentlyUploadingKey -> BackupStatus.UPLOADING
                 uploaded.contains(m.key)       -> BackupStatus.DONE
@@ -30,6 +35,7 @@ object BackupItemsRepository {
                 fileName = m.fileName,
                 mimeType = m.mimeType,
                 size = m.size,
+                createdMs = m.createdMs,
                 modifiedMs = m.modifiedMs,
                 status = status
             )
@@ -41,10 +47,10 @@ object BackupItemsRepository {
         var bytesDone = 0L; var bytesPending = 0L
         for (i in items) {
             when (i.status) {
-                BackupStatus.DONE -> { done++; bytesDone += i.size }
-                BackupStatus.FAILED -> { failed++; bytesPending += i.size }
+                BackupStatus.DONE      -> { done++; bytesDone += i.size }
+                BackupStatus.FAILED    -> { failed++; bytesPending += i.size }
                 BackupStatus.UPLOADING -> { uploading++; bytesPending += i.size }
-                BackupStatus.PENDING -> { bytesPending += i.size }
+                BackupStatus.PENDING   -> { bytesPending += i.size }
             }
         }
         val pending = items.size - done - failed - uploading

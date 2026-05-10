@@ -17,6 +17,14 @@
     <string name="stop_requested">Stopping after current file…</string>
     <string name="action_settings">Settings</string>
     <string name="action_view_mode">Toggle list/grid view</string>
+    <string name="action_sort">Sort by…</string>
+    <string name="sort_title">Sort photos by</string>
+    <string name="sort_created">Date taken / created</string>
+    <string name="sort_modified">Date modified</string>
+    <string name="action_show_selected">Show selected only</string>
+    <string name="action_show_all">Show all</string>
+    <string name="action_scroll_top">Scroll to newest</string>
+    <string name="action_scroll_bottom">Scroll to oldest</string>
     <string name="action_grant_permissions">Grant permissions</string>
     <string name="action_rebuild_history">Rebuild upload history from cloud</string>
     <string name="rebuild_running">Listing blobs…</string>
