@@ -38,9 +38,23 @@
             android:id="@+id/statusDot"
             android:layout_width="12dp"
             android:layout_height="12dp"
-            android:layout_gravity="bottom|end"
+            android:layout_gravity="top|start"
             android:layout_margin="6dp"
             android:background="@drawable/bg_tile_status_dot" />
+
+        <TextView
+            android:id="@+id/tvDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="6dp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:background="@drawable/bg_duration_badge"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"
+            android:visibility="gone" />
 
         <View
             android:id="@+id/selectionBorder"

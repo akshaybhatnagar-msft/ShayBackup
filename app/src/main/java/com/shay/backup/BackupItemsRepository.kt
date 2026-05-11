@@ -37,6 +37,7 @@ object BackupItemsRepository {
                 size = m.size,
                 createdMs = m.createdMs,
                 modifiedMs = m.modifiedMs,
+                durationMs = m.durationMs,
                 status = status
             )
         }

@@ -7,7 +7,9 @@
             <size android:width="32dp" android:height="32dp" />
         </shape>
     </item>
-    <item android:gravity="center" android:width="22dp" android:height="22dp">
-        <bitmap android:src="@drawable/ic_check_mark" />
-    </item>
+    <item
+        android:gravity="center"
+        android:width="22dp"
+        android:height="22dp"
+        android:drawable="@drawable/ic_check_mark" />
 </layer-list>

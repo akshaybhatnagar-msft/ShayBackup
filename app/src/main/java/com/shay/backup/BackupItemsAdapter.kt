@@ -133,8 +133,14 @@ class BackupItemsAdapter(
             }
             applyListSelectionVisuals(b.selectionCheck, selectionMode, selectedKeys.contains(item.key))
             b.tvName.text = item.fileName
-            b.tvMeta.text = "${Formatter.formatShortFileSize(context, item.size)} · " +
-                    dateFmt.format(Date(item.modifiedMs))
+            val meta = StringBuilder()
+                .append(Formatter.formatShortFileSize(context, item.size))
+                .append(" · ")
+                .append(dateFmt.format(Date(item.modifiedMs)))
+            if (item.category == MediaScanner.Category.VIDEOS && item.durationMs > 0L) {
+                meta.append(" · ").append(formatDuration(item.durationMs))
+            }
+            b.tvMeta.text = meta.toString()
 
             val (label, color) = labelAndColorFor(item.status)
             b.tvStatus.text = label
@@ -181,6 +187,14 @@ class BackupItemsAdapter(
             }
             val isSelected = selectionMode && selectedKeys.contains(item.key)
             applyTileSelectionVisuals(b.selectionCheck, b.selectionBorder, b.statusDot, selectionMode, isSelected)
+
+            // Duration badge for videos
+            if (item.category == MediaScanner.Category.VIDEOS && item.durationMs > 0L) {
+                b.tvDuration.visibility = View.VISIBLE
+                b.tvDuration.text = formatDuration(item.durationMs)
+            } else {
+                b.tvDuration.visibility = View.GONE
+            }
 
             // Status dot in corner
             val dotColor = ContextCompat.getColor(context, dotColorFor(item.status))
@@ -250,6 +264,15 @@ class BackupItemsAdapter(
         border.visibility = if (isSelected) View.VISIBLE else View.GONE
         // Status dot would compete with the corner check; hide while selecting.
         statusDot.visibility = View.GONE
+    }
+
+    private fun formatDuration(ms: Long): String {
+        val totalSec = ms / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return if (h > 0) String.format(Locale.US, "%d:%02d:%02d", h, m, s)
+        else              String.format(Locale.US, "%d:%02d",     m, s)
     }
 
     private fun iconFor(category: MediaScanner.Category): Int = when (category) {

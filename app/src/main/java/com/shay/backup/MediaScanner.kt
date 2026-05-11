@@ -26,7 +26,8 @@ object MediaScanner {
         val mimeType: String,
         val size: Long,
         val createdMs: Long,
-        val modifiedMs: Long
+        val modifiedMs: Long,
+        val durationMs: Long
     ) {
         /** Unique key for dedupe history. */
         val key: String get() = "${category.name}:$id:$modifiedMs"
@@ -34,8 +35,8 @@ object MediaScanner {
 
     fun scan(context: Context, config: ConfigStore): List<MediaItem> {
         val out = ArrayList<MediaItem>()
-        if (config.backupImages)    out += scanCollection(context, Category.IMAGES,    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, hasDateTaken = true)
-        if (config.backupVideos)    out += scanCollection(context, Category.VIDEOS,    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,  hasDateTaken = true)
+        if (config.backupImages)    out += scanCollection(context, Category.IMAGES,    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, hasDateTaken = true,  hasDuration = false)
+        if (config.backupVideos)    out += scanCollection(context, Category.VIDEOS,    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,  hasDateTaken = true,  hasDuration = true)
         if (config.backupDownloads) out += scanDownloads(context)
         return out
     }
@@ -44,29 +45,20 @@ object MediaScanner {
         context: Context,
         category: Category,
         base: Uri,
-        hasDateTaken: Boolean
+        hasDateTaken: Boolean,
+        hasDuration: Boolean
     ): List<MediaItem> {
-        // DATE_TAKEN exists on Images & Video collections; not on Downloads.
-        val projection = if (hasDateTaken) {
-            arrayOf(
-                MediaStore.MediaColumns._ID,
-                MediaStore.MediaColumns.DISPLAY_NAME,
-                MediaStore.MediaColumns.MIME_TYPE,
-                MediaStore.MediaColumns.SIZE,
-                MediaStore.MediaColumns.DATE_ADDED,
-                MediaStore.MediaColumns.DATE_MODIFIED,
-                MediaStore.MediaColumns.DATE_TAKEN
-            )
-        } else {
-            arrayOf(
-                MediaStore.MediaColumns._ID,
-                MediaStore.MediaColumns.DISPLAY_NAME,
-                MediaStore.MediaColumns.MIME_TYPE,
-                MediaStore.MediaColumns.SIZE,
-                MediaStore.MediaColumns.DATE_ADDED,
-                MediaStore.MediaColumns.DATE_MODIFIED
-            )
+        val cols = ArrayList<String>().apply {
+            add(MediaStore.MediaColumns._ID)
+            add(MediaStore.MediaColumns.DISPLAY_NAME)
+            add(MediaStore.MediaColumns.MIME_TYPE)
+            add(MediaStore.MediaColumns.SIZE)
+            add(MediaStore.MediaColumns.DATE_ADDED)
+            add(MediaStore.MediaColumns.DATE_MODIFIED)
+            if (hasDateTaken) add(MediaStore.MediaColumns.DATE_TAKEN)
+            if (hasDuration)  add(MediaStore.MediaColumns.DURATION)
         }
+        val projection = cols.toTypedArray()
         val out = ArrayList<MediaItem>()
         context.contentResolver.query(base, projection, null, null, null)?.use { c ->
             val idIdx       = c.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
@@ -76,15 +68,17 @@ object MediaScanner {
             val addedIdx    = c.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED)
             val modifiedIdx = c.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
             val takenIdx    = if (hasDateTaken) c.getColumnIndex(MediaStore.MediaColumns.DATE_TAKEN) else -1
+            val durationIdx = if (hasDuration) c.getColumnIndex(MediaStore.MediaColumns.DURATION) else -1
             while (c.moveToNext()) {
                 val id = c.getLong(idIdx)
                 val name = c.getString(nameIdx) ?: "file_$id"
                 val mime = c.getString(mimeIdx) ?: "application/octet-stream"
                 val size = c.getLong(sizeIdx)
-                val addedMs = c.getLong(addedIdx) * 1000L  // seconds → ms
+                val addedMs = c.getLong(addedIdx) * 1000L
                 val modifiedMs = c.getLong(modifiedIdx) * 1000L
                 val takenMs = if (takenIdx >= 0 && !c.isNull(takenIdx)) c.getLong(takenIdx) else 0L
                 val createdMs = if (takenMs > 0L) takenMs else addedMs
+                val durationMs = if (durationIdx >= 0 && !c.isNull(durationIdx)) c.getLong(durationIdx) else 0L
                 out += MediaItem(
                     category = category,
                     id = id,
@@ -93,7 +87,8 @@ object MediaScanner {
                     mimeType = mime,
                     size = size,
                     createdMs = createdMs,
-                    modifiedMs = modifiedMs
+                    modifiedMs = modifiedMs,
+                    durationMs = durationMs
                 )
             }
         }
@@ -102,6 +97,6 @@ object MediaScanner {
 
     private fun scanDownloads(context: Context): List<MediaItem> {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return emptyList()
-        return scanCollection(context, Category.DOWNLOADS, MediaStore.Downloads.EXTERNAL_CONTENT_URI, hasDateTaken = false)
+        return scanCollection(context, Category.DOWNLOADS, MediaStore.Downloads.EXTERNAL_CONTENT_URI, hasDateTaken = false, hasDuration = false)
     }
 }

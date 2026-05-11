@@ -15,6 +15,8 @@ data class BackupItem(
     val createdMs: Long,
     /** File-system / metadata last-modified time (DATE_MODIFIED). */
     val modifiedMs: Long,
+    /** Video duration in ms; 0 for non-video items. */
+    val durationMs: Long,
     val status: BackupStatus
 )
 
