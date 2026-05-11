@@ -50,7 +50,8 @@ object AzureAdmin {
         destBlobName: String,
         sourceContainer: String,
         sourceBlobName: String,
-        accountSasQs: String
+        accountSasQs: String,
+        cacheControl: String? = null
     ): Int {
         val accountBase = accountUrl.trimEnd('/')
         val sasNoQ = strip(accountSasQs)
@@ -65,6 +66,7 @@ object AzureAdmin {
             setRequestProperty("x-ms-version", API_VERSION)
             setRequestProperty("x-ms-copy-source", sourceUrl)
             setRequestProperty("Content-Length", "0")
+            cacheControl?.let { setRequestProperty("x-ms-blob-cache-control", it) }
             setFixedLengthStreamingMode(0L)
         }
         return try { conn.responseCode } finally { conn.disconnect() }
@@ -96,14 +98,15 @@ object AzureAdmin {
         }
     }
 
-    /** mid-level helper used by ShareBundleBuilder to upload the gallery HTML. */
+    /** mid-level helper used by ShareBundleBuilder to upload the gallery HTML / thumbs. */
     fun putBlobBytes(
         accountUrl: String,
         container: String,
         blobName: String,
         accountSasQs: String,
         body: ByteArray,
-        contentType: String
+        contentType: String,
+        cacheControl: String? = null
     ): Int {
         val url = URL(
             "${accountUrl.trimEnd('/')}/$container/${encodePath(blobName)}?${strip(accountSasQs)}"
@@ -117,6 +120,7 @@ object AzureAdmin {
             setRequestProperty("x-ms-blob-type", "BlockBlob")
             setRequestProperty("x-ms-version", API_VERSION)
             setRequestProperty("Content-Type", contentType)
+            cacheControl?.let { setRequestProperty("x-ms-blob-cache-control", it) }
         }
         return try {
             conn.outputStream.use { it.write(body) }

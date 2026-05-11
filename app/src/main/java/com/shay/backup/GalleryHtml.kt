@@ -7,21 +7,21 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Renders a single self-contained HTML gallery (no external CSS/JS/fonts).
- * Inherits the design language from the aether-dashboard "Xi Design System".
+ * Recipient-facing gallery HTML — single self-contained file.
  *
- * Recipient features:
- *  - Tap a tile → opens / downloads that one item.
- *  - Tap "Select" in the header → enter multi-select mode.
- *      In select mode, tapping a tile toggles its selection. The sticky bottom
- *      bar shows the count and a "Download N" button that triggers each as a
- *      same-origin <a download> click sequentially with a small delay.
+ * v3 changes:
+ *  - Tiles now show a small JPEG **thumbnail** (~30–80 KB each) instead of the
+ *    multi-megabyte original. Grid is ready in milliseconds.
+ *  - Clicking a tile opens an in-page **lightbox** with the full-resolution
+ *    image or playable video, plus an explicit Download button.
+ *  - Multi-select / Download (N) flow is unchanged — still pulls full originals.
  */
 object GalleryHtml {
 
     data class Entry(
         val displayName: String,
-        val blobName: String,
+        val blobName: String,              // full-res path inside the share container
+        val thumbBlobName: String?,        // small JPEG path; null = fall back to original
         val sizeBytes: Long,
         val mimeType: String
     )
@@ -39,35 +39,34 @@ object GalleryHtml {
         val baseUrl = "${accountUrl.trimEnd('/')}/$shareContainer"
 
         val tiles = entries.mapIndexed { idx, e ->
-            val href = "$baseUrl/${encodePath(e.blobName)}$readSasQs"
+            val fullHref  = "$baseUrl/${encodePath(e.blobName)}$readSasQs"
+            val thumbHref = if (e.thumbBlobName != null)
+                "$baseUrl/${encodePath(e.thumbBlobName)}$readSasQs"
+            else fullHref
             val size = Formatter.formatShortFileSize(context, e.sizeBytes)
             val safeName = htmlEscape(e.displayName)
-            val safeHref = htmlEscape(href)
+            val safeFull = htmlEscape(fullHref)
+            val safeThumb = htmlEscape(thumbHref)
             val mime = e.mimeType.lowercase()
             val isVideo = mime.startsWith("video/")
-            val isImage = mime.startsWith("image/")
-            val preview = when {
-                isVideo -> {
-                    val src = htmlEscape("$href#t=0.1")
-                    """<video class="media" src="$src" preload="metadata" muted playsinline></video>
-                       <div class="play-badge" aria-hidden="true"><span></span></div>""".trimIndent()
-                }
-                isImage -> """<img class="media" src="$safeHref" alt="$safeName" loading="lazy">"""
-                else    -> """<div class="file-glyph">📄</div>"""
-            }
+            val type = if (isVideo) "video" else if (mime.startsWith("image/")) "image" else "file"
             val tileClass = if (isVideo) "tile is-video" else "tile"
+            val tileBody = if (type == "file" && e.thumbBlobName == null) {
+                """<div class="file-glyph">📄</div>"""
+            } else {
+                """<img class="media" src="$safeThumb" loading="lazy" decoding="async" alt="$safeName">""" +
+                    if (isVideo) """<div class="play-badge" aria-hidden="true"><span></span></div>""" else ""
+            }
             """
-            <div class="$tileClass" data-idx="$idx" data-href="$safeHref" data-name="$safeName">
-              <a class="open" href="$safeHref" target="_blank" rel="noopener noreferrer" download title="$safeName">
-                <div class="thumb">
-                  $preview
-                  <div class="check-overlay" aria-hidden="true"></div>
-                </div>
-                <div class="meta">
-                  <div class="name">$safeName</div>
-                  <div class="size">$size</div>
-                </div>
-              </a>
+            <div class="$tileClass" data-idx="$idx" data-full="$safeFull" data-thumb="$safeThumb" data-name="$safeName" data-type="$type" data-size="${e.sizeBytes}">
+              <div class="thumb">
+                $tileBody
+                <div class="check-overlay" aria-hidden="true"></div>
+              </div>
+              <div class="meta">
+                <div class="name">$safeName</div>
+                <div class="size">$size</div>
+              </div>
             </div>
             """.trimIndent()
         }.joinToString("\n")
@@ -105,7 +104,7 @@ body {
   color: var(--deep-brown);
   line-height: 1.6;
   min-height: 100vh;
-  padding-bottom: 80px;          /* room for sticky action bar */
+  padding-bottom: 80px;
 }
 .header {
   position: sticky; top: 0; z-index: 10;
@@ -187,10 +186,10 @@ body:not(.select-mode) .action-bar { display: none; }
   border-radius: var(--radius-md);
   box-shadow: 0 2px 8px var(--shadow);
   overflow: hidden;
+  cursor: zoom-in;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 .tile:hover { box-shadow: 0 4px 16px var(--shadow-md); transform: translateY(-2px); }
-.tile a.open { display: block; text-decoration: none; color: inherit; }
 .thumb {
   width: 100%; aspect-ratio: 1 / 1;
   background: var(--primary-50);
@@ -244,7 +243,6 @@ body:not(.select-mode) .action-bar { display: none; }
   transform: scale(1.06);
 }
 
-/* --- Selection state --- */
 .thumb .check-overlay {
   position: absolute;
   top: 10px; right: 10px;
@@ -257,7 +255,6 @@ body:not(.select-mode) .action-bar { display: none; }
   pointer-events: none;
 }
 body.select-mode .check-overlay { display: block; }
-body.select-mode .tile a.open { pointer-events: none; }
 body.select-mode .tile { cursor: pointer; }
 .tile.selected .check-overlay {
   background: var(--primary-600);
@@ -292,6 +289,81 @@ body.select-mode .tile { cursor: pointer; }
   margin-top: 2px;
 }
 
+/* ── Lightbox ───────────────────────────────────────────────────────────── */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(8, 12, 24, 0.96);
+  display: none;
+  align-items: center; justify-content: center;
+}
+.lightbox.open { display: flex; }
+.lightbox .stage {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  padding: 56px 56px 110px;
+}
+.lightbox .stage img,
+.lightbox .stage video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  background: #0c1424;
+  animation: lbFade 220ms ease-out both;
+}
+@keyframes lbFade { from { opacity: 0; transform: scale(0.985); } to { opacity: 1; transform: none; } }
+.lightbox .ctrl {
+  position: absolute;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: #fff;
+  font: 600 1.1rem var(--font-body);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  user-select: none;
+}
+.lightbox .ctrl:hover { background: rgba(255,255,255,0.22); transform: scale(1.05); }
+.lightbox .close { top: 18px; right: 18px; font-size: 1.4rem; }
+.lightbox .prev  { top: 50%; left: 18px;  transform: translateY(-50%); font-size: 1.6rem; }
+.lightbox .next  { top: 50%; right: 18px; transform: translateY(-50%); font-size: 1.6rem; }
+.lightbox .prev:hover, .lightbox .next:hover { transform: translateY(-50%) scale(1.05); }
+.lightbox .caption {
+  position: absolute;
+  bottom: 76px;
+  left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.78);
+  font-size: 0.85rem;
+  font-style: italic;
+  text-align: center;
+  pointer-events: none;
+  max-width: 80vw;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lightbox .download {
+  position: absolute;
+  bottom: 22px; left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px;
+  background: var(--primary-600);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.lightbox .download:hover { background: var(--primary-700); transform: translateX(-50%) translateY(-1px); }
+.lightbox .download::before {
+  content: '↓'; font-size: 1.1rem; line-height: 1;
+}
+
 .footer {
   text-align: center;
   padding: 28px 16px 32px;
@@ -319,6 +391,8 @@ body.select-mode .tile { cursor: pointer; }
   .tile .name { font-size: 0.78rem; }
   .action-bar { padding: 10px 14px; }
   .btn { padding: 7px 12px; font-size: 0.8rem; }
+  .lightbox .stage { padding: 48px 16px 110px; }
+  .lightbox .ctrl { width: 40px; height: 40px; }
 }
 </style>
 </head>
@@ -352,6 +426,15 @@ $tiles
   </div>
 </div>
 
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo preview">
+  <button class="ctrl close" id="lbClose" type="button" aria-label="Close">×</button>
+  <button class="ctrl prev"  id="lbPrev"  type="button" aria-label="Previous">‹</button>
+  <button class="ctrl next"  id="lbNext"  type="button" aria-label="Next">›</button>
+  <div class="stage" id="lbStage"></div>
+  <div class="caption" id="lbCap"></div>
+  <a class="download" id="lbDownload" download href="#">Download</a>
+</div>
+
 <footer class="footer">
   Shared via <strong>Shay Backup</strong> · <code>${htmlEscape(shareId)}</code>
 </footer>
@@ -379,6 +462,12 @@ $tiles
   }
   function enterMode() { body.classList.add('select-mode'); refresh(); }
   function exitMode() { body.classList.remove('select-mode'); clearAll(); }
+  function toggleSel(t) {
+    const id = t.dataset.idx;
+    if (selected.has(id)) { selected.delete(id); t.classList.remove('selected'); }
+    else { selected.add(id); t.classList.add('selected'); }
+    refresh();
+  }
 
   btnSelect.addEventListener('click', enterMode);
   btnCancel.addEventListener('click', exitMode);
@@ -387,34 +476,88 @@ $tiles
     refresh();
   });
 
+  // ── Lightbox ────────────────────────────────────────────────────────────
+  const lightbox = document.getElementById('lightbox');
+  const stage = document.getElementById('lbStage');
+  const lbCap = document.getElementById('lbCap');
+  const lbDl  = document.getElementById('lbDownload');
+  let currentIdx = -1;
+
+  function openLightbox(idx) {
+    if (idx < 0 || idx >= tiles.length) return;
+    currentIdx = idx;
+    const t = tiles[idx];
+    const type = t.dataset.type;
+    const full = t.dataset.full;
+    const name = t.dataset.name;
+
+    lbCap.textContent = name;
+    lbDl.href = full;
+    lbDl.setAttribute('download', name);
+
+    stage.innerHTML = '';
+    if (type === 'video') {
+      const v = document.createElement('video');
+      v.src = full;
+      v.controls = true;
+      v.autoplay = true;
+      v.playsInline = true;
+      v.preload = 'metadata';
+      stage.appendChild(v);
+    } else {
+      const img = document.createElement('img');
+      img.src = full;
+      img.alt = name;
+      stage.appendChild(img);
+    }
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    stage.innerHTML = '';   // also stops any video
+    document.body.style.overflow = '';
+    currentIdx = -1;
+  }
+  function show(delta) {
+    if (currentIdx < 0) return;
+    const n = tiles.length;
+    openLightbox((currentIdx + delta + n) % n);
+  }
+  document.getElementById('lbClose').addEventListener('click', closeLightbox);
+  document.getElementById('lbPrev').addEventListener('click', () => show(-1));
+  document.getElementById('lbNext').addEventListener('click', () => show(1));
+  lightbox.addEventListener('click', e => {
+    if (e.target === lightbox || e.target === stage) closeLightbox();
+  });
+  document.addEventListener('keydown', e => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape')     closeLightbox();
+    else if (e.key === 'ArrowLeft')  show(-1);
+    else if (e.key === 'ArrowRight') show(1);
+  });
+
+  // ── Tile interaction ────────────────────────────────────────────────────
   tiles.forEach(t => {
-    // Long-press on touch enters select mode
     let pressTimer = null;
     t.addEventListener('touchstart', () => {
       if (body.classList.contains('select-mode')) return;
-      pressTimer = setTimeout(() => {
-        enterMode();
-        toggle(t);
-      }, 450);
+      pressTimer = setTimeout(() => { enterMode(); toggleSel(t); }, 450);
     }, { passive: true });
     const cancelPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
     t.addEventListener('touchend', cancelPress);
     t.addEventListener('touchmove', cancelPress);
 
     t.addEventListener('click', e => {
-      if (!body.classList.contains('select-mode')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      toggle(t);
+      if (body.classList.contains('select-mode')) {
+        e.preventDefault(); e.stopPropagation();
+        toggleSel(t);
+      } else {
+        e.preventDefault(); e.stopPropagation();
+        openLightbox(parseInt(t.dataset.idx, 10));
+      }
     });
   });
-
-  function toggle(t) {
-    const id = t.dataset.idx;
-    if (selected.has(id)) { selected.delete(id); t.classList.remove('selected'); }
-    else { selected.add(id); t.classList.add('selected'); }
-    refresh();
-  }
 
   btnDownload.addEventListener('click', async () => {
     btnDownload.disabled = true;
@@ -423,14 +566,13 @@ $tiles
       const t = tiles.find(x => x.dataset.idx === id);
       if (!t) continue;
       const a = document.createElement('a');
-      a.href = t.dataset.href;
+      a.href = t.dataset.full;
       a.download = t.dataset.name;
       a.rel = 'noopener noreferrer';
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      // Spread out so the browser's download manager doesn't drop ones at the back of the queue.
       await new Promise(r => setTimeout(r, 300));
     }
     btnDownload.disabled = false;
