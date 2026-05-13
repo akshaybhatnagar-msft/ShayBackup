@@ -25,6 +25,10 @@
     <string name="action_show_all">Show all</string>
     <string name="action_scroll_top">Scroll to newest</string>
     <string name="action_scroll_bottom">Scroll to oldest</string>
+
+    <string name="about_section">About</string>
+    <string name="version_line">Version %1$s · build %2$s</string>
+    <string name="version_line_with_sha">Version %1$s · build %2$s · %3$s</string>
     <string name="action_grant_permissions">Grant permissions</string>
     <string name="action_rebuild_history">Rebuild upload history from cloud</string>
     <string name="rebuild_running">Listing blobs…</string>

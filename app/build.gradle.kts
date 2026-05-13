@@ -18,6 +18,12 @@ android {
         // Local builds with no env var get an empty string and silently disable telemetry.
         val aiConn = System.getenv("AI_CONNECTION_STRING").orEmpty()
         buildConfigField("String", "AI_CONN_STR", "\"${aiConn.replace("\"", "\\\"")}\"")
+
+        // GHA injects GITHUB_RUN_NUMBER and GITHUB_SHA automatically; local builds fall back.
+        val buildNumber = System.getenv("GITHUB_RUN_NUMBER").orEmpty().ifBlank { "dev" }
+        val gitSha = System.getenv("GITHUB_SHA").orEmpty().take(7)
+        buildConfigField("String", "BUILD_NUMBER", "\"$buildNumber\"")
+        buildConfigField("String", "GIT_SHA",      "\"$gitSha\"")
     }
 
     buildTypes {

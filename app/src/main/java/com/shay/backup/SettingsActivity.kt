@@ -45,6 +45,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.btnSaveKey.setOnClickListener { saveAccountKey() }
         binding.btnTestSign.setOnClickListener { testSigning() }
         binding.btnClearKey.setOnClickListener { clearAccountKey() }
+        populateAbout()
         // Show a placeholder so the user knows a key is set without revealing it.
         if (config.accountKey.isNotBlank()) {
             binding.etConnString.setText("AccountKey=•••••••••• (set)")
@@ -96,6 +97,15 @@ class SettingsActivity : AppCompatActivity() {
         config.sasToken = parsed.sasToken
         Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
         return true
+    }
+
+    private fun populateAbout() {
+        val sha = BuildConfig.GIT_SHA
+        binding.tvVersion.text = if (sha.isNotBlank())
+            getString(R.string.version_line_with_sha, BuildConfig.VERSION_NAME, BuildConfig.BUILD_NUMBER, sha)
+        else
+            getString(R.string.version_line, BuildConfig.VERSION_NAME, BuildConfig.BUILD_NUMBER)
+        binding.tvPackage.text = packageName
     }
 
     // ── Sharing auth (account key) ──────────────────────────────────────────
