@@ -23,8 +23,8 @@ import kotlinx.coroutines.withContext
 /**
  * One page per item for [ViewerActivity]'s ViewPager2.
  *
- *  - image/*   decoded with ImageDecoder (EXIF-corrected, downsampled to screen size)
- *  - video/*   poster frame + play button; inline VideoView once tapped
+ *  - images    decoded with ImageDecoder (EXIF-corrected, downsampled to screen size)
+ *  - videos    poster frame + play button; inline VideoView once tapped
  *  - anything  file glyph + hint to use "Open in another app"
  *
  * The list is shared with the activity and never re-submitted, so favorite
