@@ -545,18 +545,15 @@ class MainActivity : AppCompatActivity() {
 
     // ── Open / share ────────────────────────────────────────────────────────
 
+    /** Opens the in-app viewer on [item], paging through the currently visible list. */
     private fun openItem(item: BackupItem) {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(item.uri, item.mimeType.ifBlank { "*/*" })
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        try {
-            startActivity(intent)
-        } catch (e: android.content.ActivityNotFoundException) {
-            Toast.makeText(this, "No app can open this file", Toast.LENGTH_LONG).show()
-        } catch (e: SecurityException) {
-            Toast.makeText(this, "Cannot open: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+        val visible = itemsAdapter.currentList
+        val index = visible.indexOfFirst { it.key == item.key }
+        if (index < 0) return
+        ViewerItems.items = visible
+        startActivity(
+            Intent(this, ViewerActivity::class.java).putExtra(ViewerActivity.EXTRA_INDEX, index)
+        )
     }
 
     private fun onItemLongPress(item: BackupItem) {

@@ -58,10 +58,13 @@ Each link is the blob URL with your container SAS appended, so:
 
 ## Favorites
 
-Long-press to select one or more items, then tap the **♥** in the selection bar
-to add them to favorites. If everything selected is already a favorite, the same
-button removes them. Favorited items show a small heart badge in both the grid
-and the list.
+Tap a photo to open the full-screen viewer, then tap the **♥** in its toolbar
+(or double-tap the photo) to favorite it. Swipe left/right to move through the
+list you came from; videos play inline, and anything else can be handed to
+another app from the overflow menu. To favorite several at once, long-press to
+select them and tap the **♥** in the selection bar; if everything selected is
+already a favorite, the same button removes them. Favorited items show a small
+heart badge in both the grid and the list.
 
 Tap the **♥** in the main toolbar to filter the list to favorites only. The
 filter stacks with the All / Pending / Backed up / Failed tabs, and the title

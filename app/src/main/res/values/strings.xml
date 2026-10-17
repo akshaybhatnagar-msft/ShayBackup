@@ -34,8 +34,18 @@
     <string name="favorites_added">Added %1$d to favorites</string>
     <string name="favorites_removed">Removed %1$d from favorites</string>
     <string name="favorite_badge">Favorite</string>
-    <string name="empty_favorites">No favorites yet. Long-press to select photos, then tap ♥ to add them to favorites.</string>
+    <string name="empty_favorites">No favorites yet. Open a photo and tap ♥, or long-press to select several.</string>
     <string name="empty_favorites_in_tab">No favorites in this tab.</string>
+    <string name="favorite_added_one">Added to favorites</string>
+    <string name="favorite_removed_one">Removed from favorites</string>
+
+    <string name="viewer_counter">%1$d of %2$d</string>
+    <string name="viewer_open_external">Open in another app</string>
+    <string name="viewer_no_app">No app can open this file</string>
+    <string name="viewer_open_failed">Cannot open: %1$s</string>
+    <string name="viewer_load_failed">Could not load this file</string>
+    <string name="viewer_preview_unavailable">No preview for this file type. Use the menu to open it in another app.</string>
+    <string name="viewer_play">Play</string>
 
     <string name="about_section">About</string>
     <string name="version_line">Version %1$s · build %2$s</string>

@@ -48,6 +48,13 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
 
+        <activity
+            android:name=".ViewerActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/Theme.ShayBackup.Viewer"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <!-- Make WorkManager's foreground service declare dataSync so setForeground
              succeeds on Android 14+. Merged onto the library entry. -->
         <service
