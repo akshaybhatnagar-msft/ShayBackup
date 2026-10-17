@@ -17,7 +17,9 @@ data class BackupItem(
     val modifiedMs: Long,
     /** Video duration in ms; 0 for non-video items. */
     val durationMs: Long,
-    val status: BackupStatus
+    val status: BackupStatus,
+    /** User-marked favorite. Stored on-device in [ConfigStore]; independent of backup state. */
+    val isFavorite: Boolean = false
 )
 
 data class BackupStats(

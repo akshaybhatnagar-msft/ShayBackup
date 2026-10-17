@@ -21,6 +21,7 @@ object BackupItemsRepository {
         }
         val uploaded = config.uploadedKeys()
         val failed = config.failedKeys()
+        val favorites = config.favoriteKeys()
         return sorted.map { m ->
             val status = when {
                 m.key == currentlyUploadingKey -> BackupStatus.UPLOADING
@@ -38,7 +39,8 @@ object BackupItemsRepository {
                 createdMs = m.createdMs,
                 modifiedMs = m.modifiedMs,
                 durationMs = m.durationMs,
-                status = status
+                status = status,
+                isFavorite = favorites.contains(m.key)
             )
         }
     }

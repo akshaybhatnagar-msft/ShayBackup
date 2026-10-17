@@ -141,6 +141,7 @@ class BackupItemsAdapter(
                 meta.append(" · ").append(formatDuration(item.durationMs))
             }
             b.tvMeta.text = meta.toString()
+            b.ivFavorite.visibility = if (item.isFavorite) View.VISIBLE else View.GONE
 
             val (label, color) = labelAndColorFor(item.status)
             b.tvStatus.text = label
@@ -195,6 +196,9 @@ class BackupItemsAdapter(
             } else {
                 b.tvDuration.visibility = View.GONE
             }
+
+            // Favorite heart badge (bottom-start corner; duration badge owns bottom-end)
+            b.ivFavorite.visibility = if (item.isFavorite) View.VISIBLE else View.GONE
 
             // Status dot in corner
             val dotColor = ContextCompat.getColor(context, dotColorFor(item.status))

@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     private var currentlyUploadingKey: String? = null
     private var isRunning: Boolean = false
     private var showSelectedOnly: Boolean = false
+    private var showFavoritesOnly: Boolean = false
 
     private val refreshHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshScan() }
@@ -190,6 +191,12 @@ class MainActivity : AppCompatActivity() {
         R.id.action_show_selected -> {
             toggleShowSelectedOnly(); true
         }
+        R.id.action_favorites_filter -> {
+            toggleFavoritesFilter(); true
+        }
+        R.id.action_favorite_selected -> {
+            toggleFavoriteOnSelection(); true
+        }
         android.R.id.home -> {
             // Pressed back arrow in selection-mode toolbar.
             if (itemsAdapter.selectionMode) { itemsAdapter.clearSelection(); true }
@@ -221,6 +228,51 @@ class MainActivity : AppCompatActivity() {
         invalidateOptionsMenu()
     }
 
+    // ── Favorites ───────────────────────────────────────────────────────────
+
+    /** Toolbar heart: restrict the list to favorites. Stacks with the status tabs. */
+    private fun toggleFavoritesFilter() {
+        showFavoritesOnly = !showFavoritesOnly
+        updateTitle()
+        applyFilter()
+        invalidateOptionsMenu()
+    }
+
+    /**
+     * Selection-mode heart: adds every selected item to favorites, or, if all of
+     * them are already favorites, removes them. Updates the in-memory list in
+     * place so no MediaStore rescan is needed.
+     */
+    private fun toggleFavoriteOnSelection() {
+        val items = itemsAdapter.selectedItems()
+        if (items.isEmpty()) return
+        val keys = items.map { it.key }
+        val removing = items.all { it.isFavorite }
+        if (removing) config.removeFavorites(keys) else config.addFavorites(keys)
+
+        val keySet = keys.toSet()
+        allItems = allItems.map { if (it.key in keySet) it.copy(isFavorite = !removing) else it }
+        itemsAdapter.clearSelection()
+        applyFilter()
+        Toast.makeText(
+            this,
+            getString(
+                if (removing) R.string.favorites_removed else R.string.favorites_added,
+                keys.size
+            ),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun updateTitle() {
+        supportActionBar?.title = when {
+            itemsAdapter.selectionMode ->
+                getString(R.string.selection_count, itemsAdapter.selectedKeys.size)
+            showFavoritesOnly -> getString(R.string.favorites_title)
+            else -> getString(R.string.app_name)
+        }
+    }
+
     @Suppress("OverrideDeprecatedMigration")
     @Deprecated("OnBackPressed superseded but the dispatcher version is more code")
     override fun onBackPressed() {
@@ -234,13 +286,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun onSelectionChanged() {
         invalidateOptionsMenu()
+        updateTitle()
         if (itemsAdapter.selectionMode) {
-            supportActionBar?.title = getString(
-                R.string.selection_count, itemsAdapter.selectedKeys.size
-            )
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
         } else {
-            supportActionBar?.title = getString(R.string.app_name)
             supportActionBar?.setDisplayHomeAsUpEnabled(false)
             // Leaving selection mode also exits the "show selected only" filter.
             if (showSelectedOnly) {
@@ -305,6 +354,18 @@ class MainActivity : AppCompatActivity() {
         menu.findItem(R.id.action_show_selected)?.setTitle(
             if (showSelectedOnly) R.string.action_show_all else R.string.action_show_selected
         )
+        // Main toolbar: filled heart while the favorites filter is active.
+        menu.findItem(R.id.action_favorites_filter)?.apply {
+            setIcon(if (showFavoritesOnly) R.drawable.ic_favorite else R.drawable.ic_favorite_border)
+            setTitle(if (showFavoritesOnly) R.string.action_favorites_filter_off else R.string.action_favorites_filter)
+        }
+        // Selection bar: filled heart means every selected item is already a favorite (tap removes).
+        menu.findItem(R.id.action_favorite_selected)?.apply {
+            val selected = itemsAdapter.selectedItems()
+            val allFav = selected.isNotEmpty() && selected.all { it.isFavorite }
+            setIcon(if (allFav) R.drawable.ic_favorite else R.drawable.ic_favorite_border)
+            setTitle(if (allFav) R.string.action_remove_favorites else R.string.action_add_favorites)
+        }
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -374,6 +435,9 @@ class MainActivity : AppCompatActivity() {
             Tab.DONE    -> allItems.filter { it.status == BackupStatus.DONE }
             Tab.FAILED  -> allItems.filter { it.status == BackupStatus.FAILED }
         }
+        if (showFavoritesOnly) {
+            filtered = filtered.filter { it.isFavorite }
+        }
         if (showSelectedOnly && itemsAdapter.selectionMode) {
             val keys = itemsAdapter.selectedKeys
             filtered = filtered.filter { keys.contains(it.key) }
@@ -381,12 +445,7 @@ class MainActivity : AppCompatActivity() {
         if (filtered.isEmpty()) {
             binding.rvItems.visibility = View.GONE
             binding.tvEmpty.visibility = View.VISIBLE
-            binding.tvEmpty.text = getString(when (currentTab) {
-                Tab.ALL     -> R.string.empty_all
-                Tab.PENDING -> R.string.empty_pending
-                Tab.DONE    -> R.string.empty_done
-                Tab.FAILED  -> R.string.empty_failed
-            })
+            binding.tvEmpty.text = getString(emptyMessageRes())
         } else {
             binding.rvItems.visibility = View.VISIBLE
             binding.tvEmpty.visibility = View.GONE
@@ -394,6 +453,17 @@ class MainActivity : AppCompatActivity() {
         }
         // Hide FABs when there's no list visible.
         binding.rvItems.post { updateScrollFabs() }
+    }
+
+    private fun emptyMessageRes(): Int = when {
+        showFavoritesOnly && allItems.none { it.isFavorite } -> R.string.empty_favorites
+        showFavoritesOnly -> R.string.empty_favorites_in_tab
+        else -> when (currentTab) {
+            Tab.ALL     -> R.string.empty_all
+            Tab.PENDING -> R.string.empty_pending
+            Tab.DONE    -> R.string.empty_done
+            Tab.FAILED  -> R.string.empty_failed
+        }
     }
 
     private fun renderHeader(items: List<BackupItem>, runningTotal: Int?, runningDone: Int?) {

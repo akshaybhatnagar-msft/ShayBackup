@@ -38,4 +38,6 @@
     <color name="status_pending">#757575</color>
     <color name="status_failed">#C62828</color>
     <color name="status_uploading">#1565C0</color>
+
+    <color name="favorite">#E53935</color>
 </resources>

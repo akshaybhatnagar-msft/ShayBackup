@@ -56,6 +56,19 @@
             android:fontFamily="sans-serif-medium"
             android:visibility="gone" />
 
+        <ImageView
+            android:id="@+id/ivFavorite"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="6dp"
+            android:padding="4dp"
+            android:background="@drawable/bg_favorite_badge"
+            android:src="@drawable/ic_favorite"
+            app:tint="@android:color/white"
+            android:contentDescription="@string/favorite_badge"
+            android:visibility="gone" />
+
         <View
             android:id="@+id/selectionBorder"
             android:layout_width="match_parent"

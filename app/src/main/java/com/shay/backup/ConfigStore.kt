@@ -138,8 +138,29 @@ class ConfigStore(context: Context) {
         }
     }
 
+    /** Clears upload + failed history only. Favorites are user intent and are kept. */
     fun clearHistory() {
         prefs.edit().remove(K_HISTORY).remove(K_FAILED).apply()
+    }
+
+    // ── Favorites ───────────────────────────────────────────────────────────
+
+    fun favoriteKeys(): Set<String> = prefs.getStringSet(K_FAVORITES, emptySet())!!.toSet()
+
+    fun addFavorites(keys: Collection<String>) {
+        if (keys.isEmpty()) return
+        val current = prefs.getStringSet(K_FAVORITES, emptySet())!!.toMutableSet()
+        if (current.addAll(keys)) {
+            prefs.edit().putStringSet(K_FAVORITES, current).apply()
+        }
+    }
+
+    fun removeFavorites(keys: Collection<String>) {
+        if (keys.isEmpty()) return
+        val current = prefs.getStringSet(K_FAVORITES, emptySet())!!.toMutableSet()
+        if (current.removeAll(keys.toSet())) {
+            prefs.edit().putStringSet(K_FAVORITES, current).apply()
+        }
     }
 
     companion object {
@@ -164,5 +185,6 @@ class ConfigStore(context: Context) {
         private const val K_SHARE_WARNED = "share_scope_warned"
         private const val K_VIEW_MODE = "view_mode"
         private const val K_SORT_MODE = "sort_mode"
+        private const val K_FAVORITES = "favorite_keys"
     }
 }

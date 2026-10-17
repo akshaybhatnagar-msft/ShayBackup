@@ -56,6 +56,24 @@ Each link is the blob URL with your container SAS appended, so:
   `Read` permission and a longer expiry, then paste it into Settings (a separate
   Share-SAS field is on the roadmap).
 
+## Favorites
+
+Long-press to select one or more items, then tap the **♥** in the selection bar
+to add them to favorites. If everything selected is already a favorite, the same
+button removes them. Favorited items show a small heart badge in both the grid
+and the list.
+
+Tap the **♥** in the main toolbar to filter the list to favorites only. The
+filter stacks with the All / Pending / Backed up / Failed tabs, and the title
+changes to *Favorites* while the filter is on. From there, long-press to select
+and **Share** exactly as usual, so the typical flow is: favorite a few over time,
+filter to favorites, pick the ones you want, share.
+
+Favorites live on-device only (same preferences file as the upload history) and
+are *not* cleared by **Rebuild upload history**. Like the upload history, they are
+keyed by `(category, _id, modified)`, so editing a file in place drops it from
+favorites along with its backed-up status.
+
 ## Limitations of v1
 
 - Plain `SharedPreferences` for SAS storage. Use a short-lived, scoped SAS, or fork to `EncryptedSharedPreferences`.

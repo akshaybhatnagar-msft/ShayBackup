@@ -26,6 +26,17 @@
     <string name="action_scroll_top">Scroll to newest</string>
     <string name="action_scroll_bottom">Scroll to oldest</string>
 
+    <string name="favorites_title">Favorites</string>
+    <string name="action_favorites_filter">Show favorites only</string>
+    <string name="action_favorites_filter_off">Show all items</string>
+    <string name="action_add_favorites">Add to favorites</string>
+    <string name="action_remove_favorites">Remove from favorites</string>
+    <string name="favorites_added">Added %1$d to favorites</string>
+    <string name="favorites_removed">Removed %1$d from favorites</string>
+    <string name="favorite_badge">Favorite</string>
+    <string name="empty_favorites">No favorites yet. Long-press to select photos, then tap ♥ to add them to favorites.</string>
+    <string name="empty_favorites_in_tab">No favorites in this tab.</string>
+
     <string name="about_section">About</string>
     <string name="version_line">Version %1$s · build %2$s</string>
     <string name="version_line_with_sha">Version %1$s · build %2$s · %3$s</string>
